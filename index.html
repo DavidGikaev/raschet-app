@@ -1,0 +1,1718 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1d4a3d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Просрочка">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<title>Расчёт просрочки</title>
+<style>:root {
+  --bg: #f3f1ec; --card: #fffefa; --ink: #1c2421; --muted: #627068; --line: #dcd8ce;
+  --accent: #1d4a3d; --accent-ink: #ffffff; --accent-soft: #e3ece6; --brass: #9a7421; --brass-soft: #f4ecd6;
+  --danger: #9b2c2c; --danger-soft: #f8e4e1; --ok: #1d4a3d; --shadow: 0 1px 2px rgba(28,36,33,.06), 0 6px 18px -8px rgba(28,36,33,.12);
+  --r: 12px; --nav-h: 62px;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #121715; --card: #1b221f; --ink: #e8ece9; --muted: #98a7a0; --line: #2d3733;
+  --accent: #6fbf9d; --accent-ink: #0e1512; --accent-soft: #22322b; --brass: #d4b15f; --brass-soft: #332c18;
+  --danger: #e58a82; --danger-soft: #3a2220; --ok: #6fbf9d; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px -8px rgba(0,0,0,.5);
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121715; --card: #1b221f; --ink: #e8ece9; --muted: #98a7a0; --line: #2d3733;
+    --accent: #6fbf9d; --accent-ink: #0e1512; --accent-soft: #22322b; --brass: #d4b15f; --brass-soft: #332c18;
+    --danger: #e58a82; --danger-soft: #3a2220; --ok: #6fbf9d; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px -8px rgba(0,0,0,.5);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+.wrap { max-width: 1020px; margin: 0 auto; padding: 0 16px; }
+
+/* шапка */
+header.top { background: var(--accent); color: var(--accent-ink); }
+header.top .wrap { display: flex; align-items: center; gap: 12px; padding-top: 14px; padding-bottom: 14px; }
+.logo { width: 34px; height: 34px; border-radius: 9px; background: var(--accent-ink); color: var(--accent); display: grid; place-items: center; font-weight: 800; font-size: 15px; letter-spacing: -.5px; flex: none; }
+header.top h1 { margin: 0; font-size: 18px; line-height: 1.15; font-weight: 700; }
+header.top small { display: block; font-weight: 400; opacity: .78; font-size: 12.5px; margin-top: 2px; }
+header.top .sp { flex: 1; }
+.iconbtn { background: transparent; border: 1px solid color-mix(in srgb, var(--accent-ink) 35%, transparent); color: var(--accent-ink); border-radius: 9px; padding: 7px 10px; cursor: pointer; font-size: 14px; }
+.iconbtn:hover { background: color-mix(in srgb, var(--accent-ink) 12%, transparent); }
+
+/* навигация */
+nav.tabs { position: fixed; z-index: 20; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); display: flex; padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -6px 20px -12px rgba(0,0,0,.25); }
+nav.tabs button { flex: 1; background: none; border: 0; padding: 8px 2px 7px; display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--muted); font-size: 11.5px; cursor: pointer; min-height: var(--nav-h); }
+nav.tabs button svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+nav.tabs button.on { color: var(--accent); font-weight: 650; }
+nav.tabs button.on::before { content: ""; position: absolute; }
+@media (min-width: 820px) {
+  body { padding-bottom: 40px; }
+  nav.tabs { position: sticky; top: 0; bottom: auto; border-top: 0; border-bottom: 1px solid var(--line); box-shadow: none; padding: 0; justify-content: center; }
+  nav.tabs .inner { display: flex; width: 100%; max-width: 1020px; padding: 0 16px; }
+  nav.tabs button { flex-direction: row; justify-content: center; gap: 8px; min-height: 48px; font-size: 14.5px; padding: 0 14px; border-bottom: 3px solid transparent; }
+  nav.tabs button.on { border-bottom-color: var(--accent); }
+}
+nav.tabs .inner { display: flex; width: 100%; }
+
+/* карточки и формы */
+main { padding-top: 16px; }
+.view { display: none; }
+.view.on { display: block; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 14px 12px; margin-bottom: 12px; box-shadow: var(--shadow); }
+.card > h2, .card-h { margin: 0 0 10px; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.card > h2 .hint, .hint { font-weight: 400; color: var(--muted); font-size: 13px; }
+.grid2, .grid3 { display: grid; gap: 10px 12px; grid-template-columns: 1fr; }
+@media (min-width: 620px) { .grid2 { grid-template-columns: 1fr 1fr; } .grid3 { grid-template-columns: 1fr 1fr 1fr; } }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field > label, .lbl { font-size: 12.5px; color: var(--muted); font-weight: 600; letter-spacing: .01em; }
+input[type=text], input[type=number], input[type=date], input[type=search], select, textarea {
+  width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 10px 11px; min-height: 44px; outline: none; font-size: 16px;
+}
+textarea { min-height: 110px; resize: vertical; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+input.num, input.money { text-align: right; font-variant-numeric: tabular-nums; }
+.chk { display: flex; align-items: flex-start; gap: 9px; font-size: 14.5px; padding: 6px 0; cursor: pointer; }
+.chk input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--accent); flex: none; }
+.chk small { display: block; color: var(--muted); font-size: 12.5px; }
+.btn { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 9px; padding: 9px 13px; cursor: pointer; font-size: 14.5px; min-height: 40px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.btn.ghost { background: transparent; }
+.btn.danger { color: var(--danger); }
+.btn.sm { padding: 5px 9px; min-height: 32px; font-size: 13px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row.end { justify-content: flex-end; }
+.seg { display: flex; background: var(--accent-soft); border-radius: 11px; padding: 3px; gap: 3px; margin-bottom: 12px; }
+.seg button { flex: 1; border: 0; background: transparent; border-radius: 8px; padding: 9px 4px; cursor: pointer; font-size: 14px; color: var(--muted); font-weight: 600; min-height: 40px; }
+.seg button.on { background: var(--card); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+details.more { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 8px; }
+details.more > summary { cursor: pointer; font-weight: 650; font-size: 14.5px; color: var(--accent); padding: 4px 0; list-style: none; }
+details.more > summary::before { content: "▸ "; }
+details.more[open] > summary::before { content: "▾ "; }
+.ev { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; padding: 8px; background: var(--bg); border-radius: 9px; margin-bottom: 8px; }
+.ev .full { grid-column: 1 / -1; }
+@media (min-width: 620px) { .ev { grid-template-columns: 1fr 1fr 1.4fr auto; } .ev .full { grid-column: auto; } }
+.debt { border-left: 4px solid var(--brass); }
+.pill { display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 9px; font-size: 12.5px; font-weight: 600; }
+
+/* результат */
+.hero { background: var(--accent); color: var(--accent-ink); border-radius: var(--r); padding: 16px 16px 14px; margin: 14px 0 12px; box-shadow: var(--shadow); }
+.hero .lab { font-size: 13px; opacity: .8; }
+.hero .val { font-size: 32px; font-weight: 800; letter-spacing: -.5px; line-height: 1.12; font-variant-numeric: tabular-nums; word-break: break-word; }
+.hero .sub { font-size: 14px; opacity: .9; margin-top: 6px; }
+.hero .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.hero .chip { background: color-mix(in srgb, var(--accent-ink) 16%, transparent); border-radius: 8px; padding: 4px 9px; font-size: 13px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 14px; }
+.hint-box { background: var(--brass-soft); border: 1px solid color-mix(in srgb, var(--brass) 35%, transparent); color: var(--ink); border-radius: 10px; padding: 10px 12px; font-size: 14px; margin-bottom: 12px; }
+.empty { text-align: center; color: var(--muted); padding: 22px 10px; border: 1px dashed var(--line); border-radius: var(--r); margin: 14px 0; }
+
+/* отчёт (экран и печать) */
+.rep h1 { font-size: 20px; margin: 0 0 4px; }
+.rep-sub { color: var(--muted); margin-bottom: 12px; font-size: 14px; }
+.rep h2 { font-size: 15.5px; margin: 18px 0 8px; padding-bottom: 5px; border-bottom: 2px solid var(--accent-soft); }
+.rep p { margin: 6px 0; font-size: 14.5px; }
+.rep p.note { color: var(--muted); font-size: 13px; }
+.rep p.warn { background: var(--danger-soft); color: var(--danger); border-radius: 8px; padding: 8px 10px; font-weight: 600; font-size: 13.5px; }
+.rep-list { margin: 6px 0; padding-left: 18px; font-size: 13.5px; color: var(--muted); }
+.rep-foot { margin-top: 14px; font-size: 12px; color: var(--muted); }
+table.kv { border-collapse: collapse; width: 100%; margin: 6px 0 10px; font-size: 14px; }
+table.kv th { text-align: left; width: 38%; font-weight: 600; color: var(--muted); padding: 5px 8px 5px 0; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.kv td { padding: 5px 0; border-bottom: 1px solid var(--line); }
+.tw { overflow-x: auto; margin: 6px -2px 10px; -webkit-overflow-scrolling: touch; }
+table.grid { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+table.grid th { background: var(--accent-soft); color: var(--accent); text-align: left; padding: 7px 8px; font-weight: 700; font-size: 12.5px; position: sticky; top: 0; }
+table.grid td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.grid .r { text-align: right; white-space: nowrap; }
+table.grid tr.muted td { color: var(--muted); font-style: italic; background: color-mix(in srgb, var(--brass-soft) 60%, transparent); }
+table.grid tfoot td { font-weight: 700; background: var(--accent-soft); }
+table.grid tr.sum td { font-weight: 700; }
+
+/* история и данные */
+.item { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.item:last-child { border-bottom: 0; }
+.item .t { font-weight: 650; }
+.item .s { color: var(--muted); font-size: 13px; }
+.cal { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; }
+.mon { background: var(--bg); border-radius: 9px; padding: 8px; }
+.mon b { display: block; font-size: 13px; margin-bottom: 4px; }
+.mon .g { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; font-size: 11px; text-align: center; }
+.mon .g span { padding: 2px 0; border-radius: 4px; }
+.mon .g .h { color: var(--muted); font-size: 10px; }
+.mon .g .off { background: var(--danger-soft); color: var(--danger); font-weight: 650; }
+.mon .g .wk { background: color-mix(in srgb, var(--accent-soft) 100%, transparent); color: var(--accent); font-weight: 650; box-shadow: inset 0 0 0 1px var(--accent); }
+.legend { display: flex; gap: 12px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; margin: 6px 0 10px; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 50; max-width: 90vw; }
+.toast.on { opacity: .96; }
+.foot { color: var(--muted); font-size: 12.5px; text-align: center; padding: 18px 16px 6px; }
+
+/* печать / PDF */
+#printRoot { display: none; }
+@media print {
+  @page { size: A4; margin: 14mm; }
+  html, body { background: #fff !important; }
+  body > *:not(#printRoot) { display: none !important; }
+  #printRoot { display: block !important; color: #000; font-family: "Times New Roman", Georgia, serif; }
+  #printRoot .rep h1 { font-size: 16pt; }
+  #printRoot .rep-sub, #printRoot .rep p.note, #printRoot .rep-list, #printRoot .rep-foot { color: #333; }
+  #printRoot .rep h2 { font-size: 12pt; border-bottom: 1px solid #000; color: #000; }
+  #printRoot table.grid { min-width: 0; font-size: 8.6pt; }
+  #printRoot table.grid th { background: #e8e8e8 !important; color: #000; position: static; border: 1px solid #777; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #printRoot table.grid td { border: 1px solid #999; color: #000; }
+  #printRoot table.grid tfoot td { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #printRoot table.grid tr.muted td { background: #f6f6f6 !important; color: #444; }
+  #printRoot table.kv th, #printRoot table.kv td { border-bottom: 1px solid #aaa; color: #000; }
+  #printRoot .rep p.warn { background: none; border: 1px solid #000; color: #000; }
+  #printRoot tr { page-break-inside: avoid; }
+  #printRoot h2 { page-break-after: avoid; }
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="logo">§</div>
+  <h1>Расчёт просрочки<small>Сроки · неустойка · ст. 395 ГК РФ · работает без интернета</small></h1>
+  <div class="sp"></div>
+  <button class="iconbtn" id="themeBtn" title="Светлая / тёмная тема" aria-label="Сменить тему">◐</button>
+</div></header>
+<nav class="tabs" aria-label="Разделы"><div class="inner"></div></nav>
+<main class="wrap">
+  <section class="view" id="v-days"></section>
+  <section class="view" id="v-pen"></section>
+  <section class="view" id="v-int"></section>
+  <section class="view" id="v-hist"></section>
+  <section class="view" id="v-data"></section>
+  <div class="foot">Расчёты выполняются на вашем устройстве, данные никуда не отправляются. Результат справочный — проверяйте перед использованием в споре.</div>
+</main>
+<div id="printRoot"></div>
+<script>/* Встроенные данные. Обновляются вручную: ставки ЦБ, производственный календарь, мораторий. */
+(function (root) {
+  'use strict';
+
+  // Ключевая ставка Банка России: [дата вступления в силу, % годовых]
+  // Источник: cbr.ru (решения Совета директоров). До 01.08.2016 ст. 395 ГК РФ применялась по иным правилам.
+  const KEY_RATES = [
+    ['2015-08-03', 11], ['2016-06-14', 10.5], ['2016-09-19', 10], ['2017-03-27', 9.75],
+    ['2017-05-02', 9.25], ['2017-06-19', 9], ['2017-09-18', 8.5], ['2017-10-30', 8.25],
+    ['2017-12-18', 7.75], ['2018-02-12', 7.5], ['2018-03-26', 7.25], ['2018-09-17', 7.5],
+    ['2018-12-17', 7.75], ['2019-06-17', 7.5], ['2019-07-29', 7.25], ['2019-09-09', 7],
+    ['2019-10-28', 6.5], ['2019-12-16', 6.25], ['2020-02-10', 6], ['2020-04-27', 5.5],
+    ['2020-06-22', 4.5], ['2020-07-27', 4.25], ['2021-03-22', 4.5], ['2021-04-26', 5],
+    ['2021-06-15', 5.5], ['2021-07-26', 6.5], ['2021-09-13', 6.75], ['2021-10-25', 7.5],
+    ['2021-12-20', 8.5], ['2022-02-14', 9.5], ['2022-02-28', 20], ['2022-04-11', 17],
+    ['2022-05-04', 14], ['2022-05-27', 11], ['2022-06-14', 9.5], ['2022-07-25', 8],
+    ['2022-09-19', 7.5], ['2023-07-24', 8.5], ['2023-08-15', 12], ['2023-09-18', 13],
+    ['2023-10-30', 15], ['2023-12-18', 16], ['2024-07-29', 18], ['2024-09-16', 19],
+    ['2024-10-28', 21], ['2025-06-09', 20], ['2025-07-28', 18], ['2025-09-15', 17],
+    ['2025-10-27', 16.5], ['2025-12-22', 16], ['2026-02-16', 15.5], ['2026-03-23', 15],
+    ['2026-04-27', 14.5], ['2026-06-22', 14.25], ['2026-07-27', 14]
+  ];
+
+  // Дата, на которую данные по ставке проверены (заседание 23.10.2026: ставка сохранена на уровне 14%).
+  const RATES_ASOF = '2026-10-26';
+  const NEXT_MEETING = '2026-12-18';
+
+  // Производственный календарь РФ (пятидневная неделя).
+  // off  — нерабочие дни, приходящиеся на пн–пт (праздники и перенесённые выходные)
+  // work — рабочие субботы/воскресенья
+  const CAL = {
+    2016: { off: '01-01,01-04,01-05,01-06,01-07,01-08,02-22,02-23,03-07,03-08,05-02,05-03,05-09,06-13,11-04', work: '02-20' },
+    2017: { off: '01-02,01-03,01-04,01-05,01-06,02-23,02-24,03-08,05-01,05-08,05-09,06-12,11-06', work: '' },
+    2018: { off: '01-01,01-02,01-03,01-04,01-05,01-08,02-23,03-08,03-09,04-30,05-01,05-02,05-09,06-11,06-12,11-05,12-31', work: '04-28,06-09,12-29' },
+    2019: { off: '01-01,01-02,01-03,01-04,01-07,01-08,03-08,05-01,05-02,05-03,05-09,05-10,06-12,11-04', work: '' },
+    2020: { off: '01-01,01-02,01-03,01-06,01-07,01-08,02-24,03-09,05-01,05-04,05-05,05-11,06-12,11-04', work: '' },
+    2021: { off: '01-01,01-04,01-05,01-06,01-07,01-08,02-22,02-23,03-08,05-03,05-10,06-14,11-04,11-05,12-31', work: '02-20' },
+    2022: { off: '01-03,01-04,01-05,01-06,01-07,02-23,03-07,03-08,05-02,05-03,05-09,05-10,06-13,11-04', work: '03-05' },
+    2023: { off: '01-02,01-03,01-04,01-05,01-06,02-23,02-24,03-08,05-01,05-08,05-09,06-12,11-06', work: '' },
+    2024: { off: '01-01,01-02,01-03,01-04,01-05,01-08,02-23,03-08,04-29,04-30,05-01,05-09,05-10,06-12,11-04,12-30,12-31', work: '04-27,11-02,12-28' },
+    2025: { off: '01-01,01-02,01-03,01-06,01-07,01-08,05-01,05-02,05-08,05-09,06-12,06-13,11-03,11-04,12-31', work: '11-01' },
+    2026: { off: '01-01,01-02,01-05,01-06,01-07,01-08,01-09,02-23,03-09,05-01,05-11,06-12,11-04,12-31', work: '' },
+    2027: { off: '01-01,01-04,01-05,01-06,01-07,01-08,02-22,02-23,03-08,05-03,05-10,06-14,11-04,11-05,12-31', work: '02-20' }
+  };
+
+  // Официальные праздничные даты (ст. 112 ТК РФ) — для приближённого расчёта шестидневной недели
+  const FIXED_HOLIDAYS = ['01-01', '01-02', '01-03', '01-04', '01-05', '01-06', '01-07', '01-08',
+    '02-23', '03-08', '05-01', '05-09', '06-12', '11-04'];
+
+  // Нерабочие дни 2020 по указам Президента РФ № 206, № 239, № 294 (с сохранением заработной платы)
+  const COVID2020 = [['2020-03-30', '2020-04-30'], ['2020-05-06', '2020-05-08']];
+
+  // Мораторные периоды
+  const MORATORIA = [
+    {
+      id: 'm428', label: 'Мораторий 2020 (ПП РФ № 428 от 03.04.2020)',
+      from: '2020-04-06', to: '2021-01-07',
+      note: 'С 06.04.2020 по 07.01.2021 (срок продлён ПП РФ № 1587 от 01.10.2020). Применяется только к лицам из перечней (ПП РФ № 434, системообразующие и пр.) — проверьте ОКВЭД должника.'
+    },
+    {
+      id: 'm497', label: 'Мораторий 2022 (ПП РФ № 497 от 28.03.2022)',
+      from: '2022-04-01', to: '2022-10-01',
+      note: 'С 01.04.2022 по 01.10.2022 включительно. Не применяется к должникам, заявившим об отказе от моратория (сообщение в ЕФРСБ). Проверьте также исключения из п. 2 постановления.'
+    }
+  ];
+
+  root.RC_DATA = { KEY_RATES, RATES_ASOF, NEXT_MEETING, CAL, FIXED_HOLIDAYS, COVID2020, MORATORIA, CAL_FROM: 2016, CAL_TO: 2027 };
+  if (typeof module !== 'undefined') module.exports = root.RC_DATA;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* Расчётное ядро: даты, календарь, ключевая ставка, неустойка, проценты. Без привязки к DOM. */
+(function (root) {
+  'use strict';
+  const MS = 86400000;
+  const pad = n => (n < 10 ? '0' : '') + n;
+  const DATA = () => root.RC_DATA;
+
+  /* ---------- даты (целые «номера дней» в UTC, без проблем с часовыми поясами) ---------- */
+  function dn(y, m, d) { return Math.floor(Date.UTC(y, m - 1, d) / MS); }
+  function fromISO(s) {
+    if (!s) return null;
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if (!m) return null;
+    const n = dn(+m[1], +m[2], +m[3]);
+    const dt = new Date(n * MS);
+    if (dt.getUTCMonth() + 1 !== +m[2]) return null;
+    return n;
+  }
+  function toISO(n) {
+    if (n == null) return '';
+    const d = new Date(n * MS);
+    return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
+  }
+  function fmtDate(n) {
+    if (n == null) return '';
+    const d = new Date(n * MS);
+    return pad(d.getUTCDate()) + '.' + pad(d.getUTCMonth() + 1) + '.' + d.getUTCFullYear();
+  }
+  function parseRu(s) {
+    const m = /(\d{1,2})\.(\d{1,2})\.(\d{4})/.exec(s || '');
+    if (!m) return null;
+    return fromISO(m[3] + '-' + pad(+m[2]) + '-' + pad(+m[1]));
+  }
+  const dow = n => new Date(n * MS).getUTCDay();
+  const yearOf = n => new Date(n * MS).getUTCFullYear();
+  const isLeap = y => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+  const daysInYear = n => (isLeap(yearOf(n)) ? 366 : 365);
+  const DOW_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+  const DOW_LONG = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+  function todayDn() { const t = new Date(); return dn(t.getFullYear(), t.getMonth() + 1, t.getDate()); }
+  function round2(x) { return Math.round(x * 100 + 1e-7 * Math.sign(x)) / 100; }
+
+  /* ---------- форматирование ---------- */
+  const nfMoney = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function fmtMoney(x) { return nfMoney.format(round2(x || 0)); }
+  function fmtRate(r) {
+    let s = (Math.round(r * 10000) / 10000).toString().replace('.', ',');
+    return s;
+  }
+  function fmtInt(n) { return new Intl.NumberFormat('ru-RU').format(n); }
+  function plural(n, one, few, many) {
+    const a = Math.abs(n) % 100, b = a % 10;
+    if (a > 10 && a < 20) return many;
+    if (b > 1 && b < 5) return few;
+    if (b === 1) return one;
+    return many;
+  }
+  const daysWord = n => plural(n, 'день', 'дня', 'дней');
+
+  /* ---------- производственный календарь ---------- */
+  const calCache = {};
+  function parseMD(y, str) {
+    if (!str) return [];
+    return str.split(',').filter(Boolean).map(md => { const p = md.split('-'); return dn(y, +p[0], +p[1]); });
+  }
+  function yearSets(y) {
+    if (!calCache[y]) {
+      const c = DATA().CAL[y];
+      calCache[y] = c ? { known: true, off: new Set(parseMD(y, c.off)), work: new Set(parseMD(y, c.work)) } : { known: false };
+    }
+    return calCache[y];
+  }
+  const approxCache = {};
+  function approxOff(y) {
+    if (approxCache[y]) return approxCache[y];
+    const s = new Set();
+    const hol = DATA().FIXED_HOLIDAYS.map(md => { const p = md.split('-'); return { n: dn(y, +p[0], +p[1]), jan: p[0] === '01' }; });
+    hol.forEach(h => { const w = dow(h.n); if (w !== 0 && w !== 6) s.add(h.n); });
+    hol.forEach(h => {
+      const w = dow(h.n);
+      if ((w === 0 || w === 6) && !h.jan) {
+        let m = h.n + 1;
+        while (dow(m) === 0 || dow(m) === 6 || s.has(m)) m++;
+        s.add(m);
+      }
+    });
+    approxCache[y] = s;
+    return s;
+  }
+  function holidaySet6(y) {
+    return new Set(DATA().FIXED_HOLIDAYS.map(md => { const p = md.split('-'); return dn(y, +p[0], +p[1]); }));
+  }
+  function covidSet() {
+    const s = new Set();
+    DATA().COVID2020.forEach(r => { for (let n = fromISO(r[0]); n <= fromISO(r[1]); n++) s.add(n); });
+    return s;
+  }
+
+  function makeCalendar(o) {
+    o = o || {};
+    const week = o.week === 6 ? 6 : 5;
+    const userOff = new Set((o.userOff || []).map(fromISO).filter(x => x != null));
+    const userWork = new Set((o.userWork || []).map(fromISO).filter(x => x != null));
+    const covid = o.covid ? covidSet() : null;
+    const h6 = {};
+    function isOff(n) {
+      if (userWork.has(n)) return false;
+      if (userOff.has(n)) return true;
+      if (covid && covid.has(n)) return true;
+      const w = dow(n), y = yearOf(n);
+      if (week === 6) {
+        if (w === 0) return true;
+        return (h6[y] || (h6[y] = holidaySet6(y))).has(n);
+      }
+      const s = yearSets(y);
+      if (s.known) {
+        if (s.work.has(n)) return false;
+        if (s.off.has(n)) return true;
+        return w === 0 || w === 6;
+      }
+      if (approxOff(y).has(n)) return true;
+      return w === 0 || w === 6;
+    }
+    // Описание нерабочего/особого дня
+    function kind(n) {
+      if (userWork.has(n)) return 'Рабочий день (добавлен вручную)';
+      if (userOff.has(n)) return 'Нерабочий день (добавлен вручную)';
+      if (covid && covid.has(n)) return 'Нерабочий день по указу Президента РФ (2020)';
+      const w = dow(n), y = yearOf(n);
+      if (week === 6) {
+        if (w === 0) return 'Воскресенье';
+        return holidaySet6(y).has(n) ? 'Праздничный день' : '';
+      }
+      const s = yearSets(y);
+      if (s.known) {
+        if (s.work.has(n)) return 'Рабочий ' + DOW_LONG[w] + ' (перенос)';
+        if (s.off.has(n)) return 'Праздничный / перенесённый выходной';
+      } else if (approxOff(y).has(n)) return 'Праздничный день (приближённо)';
+      if (w === 0 || w === 6) return 'Выходной (' + DOW_LONG[w] + ')';
+      return '';
+    }
+    const approx = n => week === 5 && !yearSets(yearOf(n)).known;
+    return { isOff, kind, approx, week };
+  }
+
+  function countWork(cal, a, b) {
+    let c = 0;
+    for (let n = a; n <= b; n++) if (!cal.isOff(n)) c++;
+    return c;
+  }
+  function nextWorkday(cal, n) {
+    let g = 0;
+    while (cal.isOff(n) && g++ < 400) n++;
+    return n;
+  }
+  function addWorkdays(cal, start, n, back) {
+    let d = start, c = 0, g = 0;
+    const step = back ? -1 : 1;
+    while (c < n && g++ < 200000) { d += step; if (!cal.isOff(d)) c++; }
+    return d;
+  }
+  // Число календарных дней в отрезке a..b с учётом включения границ
+  function spanDays(a, b, incStart, incEnd) {
+    return Math.max(0, (b - a) - 1 + (incStart ? 1 : 0) + (incEnd ? 1 : 0));
+  }
+  function ymdDiff(a, b) { // b — первая дата после периода
+    const da = new Date(a * MS), db = new Date(b * MS);
+    let y = db.getUTCFullYear() - da.getUTCFullYear();
+    let m = db.getUTCMonth() - da.getUTCMonth();
+    let d = db.getUTCDate() - da.getUTCDate();
+    if (d < 0) {
+      m--;
+      d += new Date(Date.UTC(db.getUTCFullYear(), db.getUTCMonth(), 0)).getUTCDate();
+    }
+    if (m < 0) { y--; m += 12; }
+    return { y, m, d };
+  }
+
+  // Просрочка по сроку и фактической дате
+  function calcDelay(cal, o) {
+    const out = { due: o.due, effDue: o.due, shifted: false, calDays: 0, workDays: 0, first: null, last: null };
+    if (o.apply193 && cal.isOff(o.due)) { out.effDue = nextWorkday(cal, o.due); out.shifted = true; }
+    out.first = o.firstDay === 'same' ? out.effDue : out.effDue + 1;
+    out.last = o.inclusive === false ? o.end - 1 : o.end;
+    out.calDays = Math.max(0, out.last - out.first + 1);
+    out.workDays = out.calDays ? countWork(cal, out.first, out.last) : 0;
+    return out;
+  }
+
+  /* ---------- ключевая ставка ---------- */
+  // user: {iso: rate}; возвращает отсортированный массив {d, iso, r, src}
+  function buildRates(user) {
+    const map = {};
+    DATA().KEY_RATES.forEach(x => { map[x[0]] = { iso: x[0], r: x[1], src: 'builtin' }; });
+    Object.keys(user || {}).forEach(k => {
+      if (fromISO(k) == null || !isFinite(user[k])) return;
+      map[k] = { iso: k, r: +user[k], src: map[k] ? 'override' : 'user' };
+    });
+    const arr = Object.keys(map).map(k => Object.assign({ d: fromISO(k) }, map[k]));
+    arr.sort((a, b) => a.d - b.d);
+    return arr;
+  }
+  function keyRateOn(rates, n) {
+    let lo = 0, hi = rates.length - 1, res = 0;
+    if (!rates.length) return 0;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (rates[mid].d <= n) { res = mid; lo = mid + 1; } else hi = mid - 1;
+    }
+    return rates[res].r;
+  }
+
+  // Разбор вставленного текста (таблица ЦБ, постановление и т.п.): строки «ДД.ММ.ГГГГ  ставка»
+  function parseRatesText(text) {
+    const out = [];
+    String(text || '').split(/\r?\n/).forEach(line => {
+      const m = /(\d{1,2})\.(\d{1,2})\.(\d{4})/.exec(line);
+      if (!m) return;
+      const rest = (line.slice(0, m.index) + ' ' + line.slice(m.index + m[0].length));
+      const num = /(\d{1,2}(?:[.,]\d{1,2})?)\s*%?/.exec(rest.replace(/\d{1,2}\.\d{1,2}\.\d{4}/g, ' '));
+      if (!num) return;
+      const iso = m[3] + '-' + pad(+m[2]) + '-' + pad(+m[1]);
+      if (fromISO(iso) == null) return;
+      out.push({ iso, r: parseFloat(num[1].replace(',', '.')) });
+    });
+    return out;
+  }
+
+  /* ---------- основной расчёт: неустойка / проценты ---------- */
+  // cfg.mode: key | keyfrac | pct | fixed | annual
+  function calcDebts(cfg, rates) {
+    const res = { debts: [], total: 0, warnings: [], accrDays: 0, exclDays: 0 };
+    const vr = cfg.vat ? (cfg.vat.rate || 0) / 100 : 0;
+    const scale = cfg.vat && cfg.vat.mode === 'exclude' ? 1 / (1 + vr) : cfg.vat && cfg.vat.mode === 'add' ? 1 + vr : 1;
+    const incl = cfg.inclusive !== false;
+    const excl = (cfg.excl || []).filter(e => e.from != null && e.to != null && e.to >= e.from);
+    const exOf = n => { for (let i = 0; i < excl.length; i++) if (n >= excl[i].from && n <= excl[i].to) return excl[i]; return null; };
+    const tiers = (cfg.tiers && cfg.tiers.length ? cfg.tiers.slice() : [{ from: 1, val: 0 }]).sort((a, b) => a.from - b.from);
+    const tierVal = k => { let v = tiers[0].val; for (let i = 0; i < tiers.length; i++) if (k >= tiers[i].from) v = tiers[i].val; return v; };
+    let keyConst = null;
+    if (cfg.mode === 'keyfrac') {
+      if (cfg.keyDateMode === 'end') keyConst = 'end';
+      else if (cfg.keyDateMode === 'date' && cfg.keyDate != null) keyConst = cfg.keyDate;
+    }
+    const mult = cfg.mult || 1;
+    let usedBeforeRates = false, usedPre2016 = false;
+    const firstRate = rates.length ? rates[0].d : 0;
+    const pre395 = dn(2016, 8, 1);
+
+    (cfg.debts || []).forEach(debt => {
+      const d = { name: debt.name, amount: debt.amount, due: debt.due, rows: [], sum: 0, base0: 0, noBase: false, endUsed: null, start: null };
+      res.debts.push(d);
+      if (debt.due == null) return;
+      const end = debt.end != null ? debt.end : cfg.end;
+      if (end == null) return;
+      d.endUsed = end;
+      const noBase = cfg.mode === 'fixed' && !(debt.amount > 0);
+      d.noBase = noBase;
+      let bal = noBase ? 1 : (debt.amount || 0) * scale;
+      d.base0 = bal;
+      const start = cfg.firstDay === 'same' ? debt.due : debt.due + 1;
+      const last = incl ? end : end - 1;
+      d.start = start;
+      const evs = (debt.events || []).filter(e => e.date != null && e.amount > 0)
+        .map(e => ({ date: e.date, delta: (e.type === 'add' ? 1 : -1) * e.amount * scale }))
+        .sort((a, b) => a.date - b.date);
+      let ei = 0, cur = null;
+      const rows = d.rows;
+      const flush = () => { if (cur) { rows.push(cur); cur = null; } };
+      for (let n = start; n <= last; n++) {
+        while (ei < evs.length && (incl ? evs[ei].date < n : evs[ei].date <= n)) { bal += evs[ei].delta; ei++; }
+        if (!noBase && bal < 0.005) { flush(); continue; }
+        const ex = exOf(n);
+        const k = n - start + 1;
+        let key = null, rateVal = 0, diy = 0, perDayKey = 0;
+        if (cfg.mode === 'key') { key = keyRateOn(rates, n); rateVal = key * mult; diy = daysInYear(n); }
+        else if (cfg.mode === 'keyfrac') {
+          key = keyConst === 'end' ? keyRateOn(rates, end) : keyConst != null ? keyRateOn(rates, keyConst) : keyRateOn(rates, n);
+          rateVal = key;
+        }
+        else if (cfg.mode === 'annual') { rateVal = tierVal(k); diy = daysInYear(n); }
+        else { rateVal = tierVal(k); }
+        if (rates.length && n < firstRate && (cfg.mode === 'key' || cfg.mode === 'keyfrac')) usedBeforeRates = true;
+        if (cfg.mode === 'key' && n < pre395) usedPre2016 = true;
+        const sig = (ex ? 'x' + ex.label : '') + '|' + bal + '|' + rateVal + '|' + diy;
+        if (cur && cur.sig === sig && cur.to === n - 1) { cur.to = n; cur.days++; cur.kTo = k; }
+        else {
+          flush();
+          cur = { sig, from: n, to: n, days: 1, ex: !!ex, exLabel: ex ? ex.label : '', bal: noBase ? null : bal, rateVal, key, diy, kFrom: k, kTo: k, amount: 0 };
+        }
+      }
+      flush();
+      rows.forEach(r => {
+        if (r.ex) { r.amount = 0; res.exclDays += r.days; return; }
+        const b = r.bal == null ? 1 : r.bal;
+        let a = 0;
+        if (cfg.mode === 'key') a = b * r.rateVal / 100 / r.diy * r.days;
+        else if (cfg.mode === 'keyfrac') a = b * r.rateVal * mult / 100 / (cfg.divisor || 300) * r.days;
+        else if (cfg.mode === 'pct') a = b * r.rateVal / 100 * r.days;
+        else if (cfg.mode === 'fixed') a = r.rateVal * r.days;
+        else if (cfg.mode === 'annual') a = b * r.rateVal / 100 / r.diy * r.days;
+        r.amount = round2(a);
+        res.accrDays += r.days;
+      });
+      d.sum = round2(rows.reduce((s, r) => s + r.amount, 0));
+      res.total += d.sum;
+    });
+    res.total = round2(res.total);
+    if (usedBeforeRates) res.warnings.push('Часть периода раньше первой ставки в таблице — принята первая известная ставка.');
+    if (usedPre2016) res.warnings.push('Период до 01.08.2016: до этой даты ст. 395 ГК РФ применялась по иным правилам (средние ставки банковского процента), расчёт по ключевой ставке для этих дней приблизителен.');
+    return res;
+  }
+
+  // Лимит и штраф
+  function finalizePenalty(res, o) {
+    const cap = o.cap || { mode: 'none' };
+    const fine = o.fine > 0 ? o.fine : 0;
+    const out = { raw: res.total, fine, cap: null, capApplied: false, penaltyAfterCap: res.total, final: 0, perDebtCap: false };
+    let pen = res.total;
+    if (cap.mode === 'pctDebt' && cap.value > 0) {
+      out.perDebtCap = true;
+      pen = 0;
+      res.debts.forEach(d => {
+        d.cap = round2(Math.max(d.base0, d.amount || 0) * cap.value / 100);
+        d.capped = Math.min(d.sum, d.cap);
+        if (d.capped < d.sum) out.capApplied = true;
+        pen += d.capped;
+      });
+      pen = round2(pen);
+      out.penaltyAfterCap = pen;
+      out.final = round2(pen + fine);
+      return out;
+    }
+    let limit = null;
+    if (cap.mode === 'pctRef' && cap.ref > 0 && cap.value > 0) limit = round2(cap.ref * cap.value / 100);
+    else if (cap.mode === 'fixed' && cap.value > 0) limit = round2(cap.value);
+    out.cap = limit;
+    if (limit != null) {
+      if (cap.withFine) {
+        const t = round2(res.total + fine);
+        const c = Math.min(t, limit);
+        out.capApplied = c < t;
+        out.final = c;
+        out.penaltyAfterCap = round2(Math.max(0, c - fine));
+        out.fineAfterCap = Math.min(fine, c);
+        return out;
+      }
+      if (res.total > limit) { out.capApplied = true; pen = limit; }
+    }
+    out.penaltyAfterCap = pen;
+    out.final = round2(pen + fine);
+    return out;
+  }
+
+  const api = {
+    MS, dn, fromISO, toISO, fmtDate, parseRu, dow, yearOf, isLeap, daysInYear, todayDn, round2,
+    DOW_SHORT, DOW_LONG, fmtMoney, fmtRate, fmtInt, plural, daysWord,
+    makeCalendar, countWork, nextWorkday, addWorkdays, spanDays, ymdDiff, calcDelay,
+    buildRates, keyRateOn, parseRatesText, calcDebts, finalizePenalty
+  };
+  root.Engine = api;
+  if (typeof module !== 'undefined') module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* Единая модель отчёта -> HTML (экран/печать/PDF), Word (.docx), текст для копирования. */
+(function (root) {
+  'use strict';
+  const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const norm = r => (Array.isArray(r) ? { c: r } : r);
+
+  /* Модель: { title, sub, blocks: [ {t:'h',text} | {t:'p',text} | {t:'note',text} | {t:'warn',text}
+       | {t:'kv', rows:[[k,v]]} | {t:'table', head:[], rows:[[...]|{c:[...],cls}], foot:[...], align:['l','r'..]} ] } */
+
+  function toHTML(m, o) {
+    o = o || {};
+    let s = '<div class="rep">';
+    if (!o.noTitle) {
+      s += '<h1>' + esc(m.title) + '</h1>';
+      if (m.sub) s += '<div class="rep-sub">' + esc(m.sub) + '</div>';
+    }
+    m.blocks.forEach(b => {
+      if (b.t === 'h') s += '<h2>' + esc(b.text) + '</h2>';
+      else if (b.t === 'p') s += '<p>' + esc(b.text) + '</p>';
+      else if (b.t === 'note') s += '<p class="note">' + esc(b.text) + '</p>';
+      else if (b.t === 'warn') s += '<p class="warn">' + esc(b.text) + '</p>';
+      else if (b.t === 'list') s += '<ul class="rep-list">' + b.items.map(i => '<li>' + esc(i) + '</li>').join('') + '</ul>';
+      else if (b.t === 'kv') {
+        s += '<table class="kv">' + b.rows.map(r => '<tr><th>' + esc(r[0]) + '</th><td>' + esc(r[1]) + '</td></tr>').join('') + '</table>';
+      } else if (b.t === 'table') {
+        const al = b.align || [];
+        s += '<div class="tw"><table class="grid"><thead><tr>' + b.head.map((h, i) => '<th class="' + (al[i] === 'r' ? 'r' : '') + '">' + esc(h) + '</th>').join('') + '</tr></thead><tbody>';
+        b.rows.forEach(r0 => {
+          const r = norm(r0);
+          s += '<tr class="' + (r.cls || '') + '">' + r.c.map((c, i) => '<td class="' + (al[i] === 'r' ? 'r' : '') + '">' + esc(c) + '</td>').join('') + '</tr>';
+        });
+        s += '</tbody>';
+        if (b.foot) s += '<tfoot><tr>' + b.foot.map((c, i) => '<td class="' + (al[i] === 'r' ? 'r' : '') + '">' + esc(c) + '</td>').join('') + '</tr></tfoot>';
+        s += '</table></div>';
+      }
+    });
+    if (m.footer) s += '<div class="rep-foot">' + esc(m.footer) + '</div>';
+    return s + '</div>';
+  }
+
+  function toText(m) {
+    const L = [m.title];
+    if (m.sub) L.push(m.sub);
+    L.push('');
+    m.blocks.forEach(b => {
+      if (b.t === 'h') { L.push(''); L.push(b.text.toUpperCase()); }
+      else if (b.t === 'p' || b.t === 'note') L.push(b.text);
+      else if (b.t === 'warn') L.push('! ' + b.text);
+      else if (b.t === 'list') b.items.forEach(i => L.push('• ' + i));
+      else if (b.t === 'kv') b.rows.forEach(r => L.push(r[0] + ': ' + r[1]));
+      else if (b.t === 'table') {
+        L.push(b.head.join('\t'));
+        b.rows.forEach(r => L.push(norm(r).c.join('\t')));
+        if (b.foot) L.push(b.foot.join('\t'));
+      }
+    });
+    return L.join('\n');
+  }
+
+  /* ---------- ZIP (без сжатия) ---------- */
+  let CRC = null;
+  function crc32(buf) {
+    if (!CRC) { CRC = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; CRC[n] = c >>> 0; } }
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < buf.length; i++) c = CRC[(c ^ buf[i]) & 255] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function zip(files) {
+    const enc = new TextEncoder();
+    const now = new Date();
+    const dt = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)) & 0xFFFF;
+    const dd = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
+    const parts = [], central = [];
+    let offset = 0;
+    const u16 = v => [v & 255, (v >> 8) & 255];
+    const u32 = v => [v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >>> 24) & 255];
+    files.forEach(f => {
+      const name = enc.encode(f.name);
+      const data = typeof f.data === 'string' ? enc.encode(f.data) : f.data;
+      const crc = crc32(data);
+      const lh = new Uint8Array([0x50, 0x4b, 3, 4, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(dt), ...u16(dd), ...u32(crc), ...u32(data.length), ...u32(data.length), ...u16(name.length), ...u16(0)]);
+      parts.push(lh, name, data);
+      central.push({ name, crc, size: data.length, offset });
+      offset += lh.length + name.length + data.length;
+    });
+    const cdStart = offset;
+    central.forEach(c => {
+      const ch = new Uint8Array([0x50, 0x4b, 1, 2, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(dt), ...u16(dd), ...u32(c.crc), ...u32(c.size), ...u32(c.size), ...u16(c.name.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(c.offset)]);
+      parts.push(ch, c.name);
+      offset += ch.length + c.name.length;
+    });
+    const end = new Uint8Array([0x50, 0x4b, 5, 6, 0, 0, 0, 0, ...u16(central.length), ...u16(central.length), ...u32(offset - cdStart), ...u32(cdStart), ...u16(0)]);
+    parts.push(end);
+    let total = 0; parts.forEach(p => total += p.length);
+    const out = new Uint8Array(total);
+    let pos = 0; parts.forEach(p => { out.set(p, pos); pos += p.length; });
+    return out;
+  }
+
+  /* ---------- DOCX ---------- */
+  const X = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
+  function run(text, o) {
+    o = o || {};
+    let rpr = '';
+    if (o.b) rpr += '<w:b/>';
+    if (o.i) rpr += '<w:i/>';
+    if (o.color) rpr += '<w:color w:val="' + o.color + '"/>';
+    if (o.sz) rpr += '<w:sz w:val="' + o.sz + '"/><w:szCs w:val="' + o.sz + '"/>';
+    return '<w:r>' + (rpr ? '<w:rPr>' + rpr + '</w:rPr>' : '') + '<w:t xml:space="preserve">' + X(text) + '</w:t></w:r>';
+  }
+  function para(text, o) {
+    o = o || {};
+    const ppr = '<w:pPr><w:spacing w:before="' + (o.before || 0) + '" w:after="' + (o.after == null ? 80 : o.after) + '"/>' + (o.keep ? '<w:keepNext/>' : '') + (o.jc ? '<w:jc w:val="' + o.jc + '"/>' : '') + '</w:pPr>';
+    return '<w:p>' + ppr + run(text, o) + '</w:p>';
+  }
+  function cell(text, w, o) {
+    o = o || {};
+    return '<w:tc><w:tcPr><w:tcW w:w="' + w + '" w:type="dxa"/>' + (o.fill ? '<w:shd w:val="clear" w:color="auto" w:fill="' + o.fill + '"/>' : '') + '</w:tcPr>' +
+      '<w:p><w:pPr><w:spacing w:before="20" w:after="20"/>' + (o.jc ? '<w:jc w:val="' + o.jc + '"/>' : '') + '</w:pPr>' + run(text, { b: o.b, i: o.i, sz: o.sz || 17, color: o.color }) + '</w:p></w:tc>';
+  }
+  const BORD = '<w:tblBorders>' + ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map(s => '<w:' + s + ' w:val="single" w:sz="4" w:space="0" w:color="A0A8A4"/>').join('') + '</w:tblBorders>';
+  function widths(cols, total, rows) {
+    const w = [];
+    for (let i = 0; i < cols; i++) {
+      let mx = 4;
+      rows.forEach(r => { const t = String(r[i] == null ? '' : r[i]); const longest = Math.max.apply(null, t.split(/\s+/).map(x => x.length).concat([0])); mx = Math.max(mx, Math.min(Math.max(longest, t.length * 0.45), 34)); });
+      w.push(mx);
+    }
+    const sum = w.reduce((a, b) => a + b, 0);
+    return w.map(x => Math.floor(total * x / sum));
+  }
+  function table(b, total) {
+    const cols = b.head.length, al = b.align || [];
+    const all = [b.head].concat(b.rows.map(r => norm(r).c));
+    if (b.foot) all.push(b.foot);
+    const ws = widths(cols, total, all);
+    let s = '<w:tbl><w:tblPr><w:tblW w:w="' + total + '" w:type="dxa"/>' + BORD + '<w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="70" w:type="dxa"/><w:right w:w="70" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>' + ws.map(w => '<w:gridCol w:w="' + w + '"/>').join('') + '</w:tblGrid>';
+    s += '<w:tr><w:trPr><w:cantSplit/><w:tblHeader/></w:trPr>' + b.head.map((h, i) => cell(h, ws[i], { b: true, fill: 'DCE6E0', jc: al[i] === 'r' ? 'right' : 'left' })).join('') + '</w:tr>';
+    b.rows.forEach(r0 => {
+      const r = norm(r0);
+      const muted = /muted/.test(r.cls || '');
+      s += '<w:tr><w:trPr><w:cantSplit/></w:trPr>' + r.c.map((c, i) => cell(c, ws[i], { jc: al[i] === 'r' ? 'right' : 'left', i: muted, color: muted ? '777777' : null })).join('') + '</w:tr>';
+    });
+    if (b.foot) s += '<w:tr><w:trPr><w:cantSplit/></w:trPr>' + b.foot.map((c, i) => cell(c, ws[i], { b: true, fill: 'F1F4F2', jc: al[i] === 'r' ? 'right' : 'left' })).join('') + '</w:tr>';
+    return s + '</w:tbl>' + para('', { after: 60 });
+  }
+  function kvTable(rows, total) {
+    const w1 = Math.floor(total * 0.34), w2 = total - w1;
+    return '<w:tbl><w:tblPr><w:tblW w:w="' + total + '" w:type="dxa"/>' + BORD + '<w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="70" w:type="dxa"/><w:right w:w="70" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="' + w1 + '"/><w:gridCol w:w="' + w2 + '"/></w:tblGrid>' +
+      rows.map(r => '<w:tr><w:trPr><w:cantSplit/></w:trPr>' + cell(r[0], w1, { b: true, fill: 'F1F4F2', sz: 18 }) + cell(r[1], w2, { sz: 18 }) + '</w:tr>').join('') + '</w:tbl>' + para('', { after: 60 });
+  }
+
+  function toDocx(m) {
+    const landscape = m.blocks.some(b => b.t === 'table' && b.head.length >= 6);
+    const pageW = landscape ? 16838 : 11906, pageH = landscape ? 11906 : 16838, mar = 850;
+    const total = pageW - 2 * mar;
+    let body = para(m.title, { b: true, sz: 30, after: 60 });
+    if (m.sub) body += para(m.sub, { sz: 19, color: '555555', after: 160 });
+    m.blocks.forEach(b => {
+      if (b.t === 'h') body += para(b.text, { b: true, sz: 23, before: 160, after: 80, keep: true });
+      else if (b.t === 'p') body += para(b.text, { sz: 20 });
+      else if (b.t === 'note') body += para(b.text, { i: true, sz: 17, color: '555555' });
+      else if (b.t === 'warn') body += para('Внимание: ' + b.text, { b: true, sz: 18, color: '8A3B12' });
+      else if (b.t === 'list') b.items.forEach(i => body += para('• ' + i, { sz: 18, after: 40 }));
+      else if (b.t === 'kv') body += kvTable(b.rows, total);
+      else if (b.t === 'table') body += table(b, total);
+    });
+    if (m.footer) body += para(m.footer, { i: true, sz: 16, color: '777777', before: 120 });
+    const doc = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' + body +
+      '<w:sectPr><w:pgSz w:w="' + pageW + '" w:h="' + pageH + '"' + (landscape ? ' w:orient="landscape"' : '') + '/><w:pgMar w:top="' + mar + '" w:right="' + mar + '" w:bottom="' + mar + '" w:left="' + mar + '" w:header="400" w:footer="400" w:gutter="0"/></w:sectPr></w:body></w:document>';
+    const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial" w:eastAsia="Arial"/><w:sz w:val="20"/><w:szCs w:val="20"/><w:lang w:val="ru-RU"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="80" w:line="252" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>';
+    const files = [
+      { name: '[Content_Types].xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>' },
+      { name: '_rels/.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>' },
+      { name: 'word/_rels/document.xml.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' },
+      { name: 'word/styles.xml', data: styles },
+      { name: 'word/document.xml', data: doc }
+    ];
+    return zip(files);
+  }
+
+  const api = { toHTML, toText, toDocx, zip, crc32, esc };
+  root.Report = api;
+  if (typeof module !== 'undefined') module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* Общие UI-помощники, состояние, сохранение, экспорт-кнопки */
+(function (root) {
+  'use strict';
+  const E = root.Engine, R = root.Report;
+  const App = root.App = { S: null, views: {}, VERSION: '1.0' };
+
+  function h(tag, attrs) {
+    const el = document.createElement(tag);
+    if (attrs) for (const k of Object.keys(attrs)) {
+      const v = attrs[k];
+      if (v == null || v === false) continue;
+      if (k === 'class') el.className = v;
+      else if (k === 'html') el.innerHTML = v;
+      else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), v);
+      else if (v === true) el.setAttribute(k, '');
+      else el.setAttribute(k, v);
+    }
+    for (let i = 2; i < arguments.length; i++) add(el, arguments[i]);
+    return el;
+  }
+  function add(el, c) {
+    if (c == null || c === false) return;
+    if (Array.isArray(c)) { c.forEach(x => add(el, x)); return; }
+    el.append(c.nodeType ? c : document.createTextNode(String(c)));
+  }
+  App.h = h;
+  App.put = function (el) { for (let i = 1; i < arguments.length; i++) add(el, arguments[i]); return el; };
+
+  const debounce = (fn, ms) => { let t; return function () { const a = arguments, c = this; clearTimeout(t); t = setTimeout(() => fn.apply(c, a), ms); }; };
+  App.debounce = debounce;
+
+  /* ---------- хранилище ---------- */
+  const LS = 'rc_state_v1', LH = 'rc_hist_v1';
+  function lsGet(k, d) { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : d; } catch (e) { return d; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+  App.lsGet = lsGet; App.lsSet = lsSet;
+
+  const clone = o => JSON.parse(JSON.stringify(o));
+  App.clone = clone;
+  function merge(def, sv) {
+    if (Array.isArray(def) || def === null || typeof def !== 'object') return sv === undefined ? def : sv;
+    const out = {};
+    Object.keys(def).forEach(k => { out[k] = merge(def[k], sv && typeof sv === 'object' ? sv[k] : undefined); });
+    if (sv && typeof sv === 'object') Object.keys(sv).forEach(k => { if (!(k in out)) out[k] = sv[k]; });
+    return out;
+  }
+  const todayISO = () => E.toISO(E.todayDn());
+  App.todayISO = todayISO;
+  const newDebt = () => ({ name: '', amount: null, due: '', end: '', events: [] });
+  App.newDebt = newDebt;
+
+  function defState() {
+    const t = todayISO();
+    return {
+      theme: 'auto', tab: 'days',
+      settings: { userRates: {}, userOff: [], userWork: [] },
+      days: {
+        mode: 'between', week: 5, covid: false, apply193: true,
+        between: { from: '', to: t, incStart: true, incEnd: true },
+        add: { start: t, n: 30, unit: 'cal', dir: 'after', incStart: false },
+        delay: { end: t, firstDay: 'next', inclusive: true, rows: [{ name: '', due: '', fact: '' }] }
+      },
+      pen: {
+        title: '', kind: 'pct', pct: 0.1, fixed: null, annual: null, divisor: 300, mult: 1, keyDateMode: 'each', keyDate: '',
+        tiers: [], debts: [newDebt()], end: t, firstDay: 'next', inclusive: true, vatMode: 'none', vatRate: 22,
+        mor: { m428: false, m497: false }, excl: [], cap: { mode: 'none', value: null, ref: null, withFine: false }, fine: null,
+        annualRef: null,
+        red: { on: false, mode: 'mult', mult: 2, annual: null, perDay: null, sum: null }
+      },
+      int: {
+        title: '', kind: '395', rateSrc: 'key', annual: null, debts: [newDebt()], end: t, firstDay: 'next', inclusive: true,
+        vatMode: 'none', vatRate: 22, mor: { m428: false, m497: false }, excl: []
+      }
+    };
+  }
+  App.defState = defState;
+  App.load = function () { App.S = merge(defState(), lsGet(LS, null)); return App.S; };
+  const saveNow = () => lsSet(LS, App.S);
+  App.save = debounce(saveNow, 250);
+  App.flush = saveNow;
+  App.hist = () => lsGet(LH, []);
+  App.setHist = v => lsSet(LH, v);
+
+  /* ---------- данные: ставки, календарь ---------- */
+  let ratesCache = null;
+  App.rates = () => ratesCache || (ratesCache = E.buildRates(App.S.settings.userRates));
+  App.resetRates = () => { ratesCache = null; };
+  App.calendar = function (opt) {
+    const s = App.S.settings;
+    return E.makeCalendar({
+      week: opt && opt.week || 5, covid: opt && opt.covid,
+      userOff: s.userOff.map(x => x.date), userWork: s.userWork.map(x => x.date)
+    });
+  };
+
+  /* ---------- поля ввода ---------- */
+  function field(label, el, hint) { return h('div', { class: 'field' }, h('label', null, label), el, hint ? h('div', { class: 'hint' }, hint) : null); }
+  function parseNum(s) {
+    if (s == null) return null;
+    s = String(s).replace(/[\s  ]/g, '').replace(',', '.');
+    if (s === '' || s === '-' || s === '.') return null;
+    const v = parseFloat(s);
+    return isFinite(v) ? v : null;
+  }
+  const plain = v => (v == null ? '' : String(Math.round(v * 1e6) / 1e6).replace('.', ','));
+  function moneyInput(obj, key, cb, ph) {
+    const el = h('input', { type: 'text', inputmode: 'decimal', class: 'money', placeholder: ph || '0,00', autocomplete: 'off' });
+    const show = () => { el.value = obj[key] == null ? '' : E.fmtMoney(obj[key]); };
+    show();
+    el.addEventListener('focus', () => { el.value = plain(obj[key]); setTimeout(() => { try { el.select(); } catch (e) { } }, 0); });
+    el.addEventListener('input', () => { obj[key] = parseNum(el.value); cb && cb(); });
+    el.addEventListener('blur', show);
+    return el;
+  }
+  function numInput(obj, key, cb, ph) {
+    const el = h('input', { type: 'text', inputmode: 'decimal', class: 'num', placeholder: ph || '', autocomplete: 'off' });
+    el.value = plain(obj[key]);
+    el.addEventListener('input', () => { obj[key] = parseNum(el.value); cb && cb(); });
+    return el;
+  }
+  function textInput(obj, key, cb, ph) {
+    const el = h('input', { type: 'text', placeholder: ph || '', autocomplete: 'off' });
+    el.value = obj[key] || '';
+    el.addEventListener('input', () => { obj[key] = el.value; cb && cb(); });
+    return el;
+  }
+  function dateInput(obj, key, cb) {
+    const el = h('input', { type: 'date', min: '1990-01-01', max: '2100-12-31' });
+    el.value = obj[key] || '';
+    el.addEventListener('input', () => { obj[key] = el.value; cb && cb(); });
+    el.addEventListener('change', () => { obj[key] = el.value; cb && cb(); });
+    return el;
+  }
+  function select(obj, key, opts, cb) {
+    const el = h('select', null, opts.map(o => h('option', { value: o[0] }, o[1])));
+    el.value = obj[key];
+    el.addEventListener('change', () => { obj[key] = el.value; cb && cb(); });
+    return el;
+  }
+  function check(obj, key, label, cb, sub) {
+    const el = h('input', { type: 'checkbox' });
+    el.checked = !!obj[key];
+    el.addEventListener('change', () => { obj[key] = el.checked; cb && cb(); });
+    return h('label', { class: 'chk' }, el, h('span', null, label, sub ? h('small', null, sub) : null));
+  }
+  Object.assign(App, { field, parseNum, moneyInput, numInput, textInput, dateInput, select, check });
+
+  /* ---------- уведомления, скачивание, печать, копирование ---------- */
+  let toastEl = null, toastT = null;
+  App.toast = function (msg) {
+    if (!toastEl) { toastEl = h('div', { class: 'toast' }); document.body.append(toastEl); }
+    toastEl.textContent = msg; toastEl.classList.add('on');
+    clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('on'), 2400);
+  };
+  const TR = { а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'kh',ц:'ts',ч:'ch',ш:'sh',щ:'shch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya' };
+  function safeName(s) {
+    const t = String(s || 'raschet').toLowerCase().replace(/[а-яё]/g, c => TR[c]).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    return (t || 'raschet').slice(0, 60) + '_' + E.toISO(E.todayDn());
+  }
+  async function deliver(blob, name) {
+    const coarse = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+    try {
+      if (coarse && navigator.canShare) {
+        const f = new File([blob], name, { type: blob.type });
+        if (navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: name }); return; }
+      }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    const url = URL.createObjectURL(blob);
+    const a = h('a', { href: url, download: name });
+    document.body.append(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+  }
+  App.download = deliver;
+  App.docx = function (model, base) {
+    const bytes = R.toDocx(model);
+    deliver(new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), safeName(base) + '.docx');
+  };
+  App.print = function (model) {
+    const pr = document.getElementById('printRoot');
+    pr.innerHTML = R.toHTML(model);
+    const clear = () => { pr.innerHTML = ''; window.removeEventListener('afterprint', clear); };
+    window.addEventListener('afterprint', clear);
+    setTimeout(() => window.print(), 60);
+  };
+  App.copy = async function (model) {
+    const text = R.toText(model);
+    try { await navigator.clipboard.writeText(text); }
+    catch (e) {
+      const ta = h('textarea', { style: 'position:fixed;opacity:0' }); ta.value = text; document.body.append(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e2) { } ta.remove();
+    }
+    App.toast('Расчёт скопирован — можно вставлять в Word или Excel');
+  };
+
+  // Блок результата: итоговая карточка + кнопки + таблицы
+  App.renderResult = function (box, r) {
+    box.innerHTML = '';
+    if (!r) return;
+    if (r.empty) { box.append(h('div', { class: 'empty' }, r.empty)); return; }
+    if (r.hero) {
+      box.append(h('div', { class: 'hero' },
+        h('div', { class: 'lab' }, r.hero.label),
+        h('div', { class: 'val' }, r.hero.value),
+        r.hero.sub ? h('div', { class: 'sub' }, r.hero.sub) : null,
+        r.hero.chips ? h('div', { class: 'chips' }, r.hero.chips.map(c => h('span', { class: 'chip' }, c))) : null));
+    }
+    if (r.warnings && r.warnings.length) box.append(h('div', { class: 'hint-box' }, r.warnings.map(w => h('div', null, '⚠ ' + w))));
+    const acts = h('div', { class: 'actions' },
+      h('button', { class: 'btn', onclick: () => App.copy(r.model) }, 'Копировать'),
+      h('button', { class: 'btn', onclick: () => App.print(r.model) }, 'PDF / печать'),
+      h('button', { class: 'btn', onclick: () => App.docx(r.model, r.file) }, 'Word (.docx)'),
+      r.save ? h('button', { class: 'btn primary', onclick: r.save }, 'Сохранить в историю') : null,
+      (r.extra || []).map(x => h('button', { class: 'btn', onclick: x[1] }, x[0])));
+    box.append(acts);
+    const body = h('div', { class: 'card' });
+    body.innerHTML = R.toHTML(r.model, { noTitle: true });
+    box.append(body);
+  };
+
+  App.saveHistory = function (kind, title, summary, state) {
+    const list = App.hist();
+    list.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: Date.now(), kind, title, summary, state: clone(state) });
+    App.setHist(list.slice(0, 300));
+    App.toast('Сохранено в истории');
+    if (App.views.hist && App.views.hist.refresh) App.views.hist.refresh();
+  };
+
+  App.exclFromState = function (st) {
+    const out = [];
+    const mor = root.RC_DATA.MORATORIA;
+    mor.forEach(m => { if (st.mor && st.mor[m.id]) out.push({ from: E.fromISO(m.from), to: E.fromISO(m.to), label: m.label }); });
+    (st.excl || []).forEach(x => {
+      const a = E.fromISO(x.from), b = E.fromISO(x.to);
+      if (a != null && b != null && b >= a) out.push({ from: a, to: b, label: x.label || 'исключённый период' });
+    });
+    return out;
+  };
+
+  /* Редактор исключаемых периодов (мораторий и произвольные) */
+  App.exclEditor = function (st, cb, noMor) {
+    const wrap = h('div');
+    const list = h('div');
+    const draw = () => {
+      list.innerHTML = '';
+      st.excl.forEach((x, i) => {
+        list.append(h('div', { class: 'ev' },
+          field('С', dateInput(x, 'from', cb)), field('По (включительно)', dateInput(x, 'to', cb)),
+          field('Основание', textInput(x, 'label', cb, 'напр. наблюдение, ПП № 326')),
+          h('button', { class: 'btn sm danger', onclick: () => { st.excl.splice(i, 1); draw(); cb(); } }, 'Убрать')));
+      });
+    };
+    draw();
+    const mor = root.RC_DATA.MORATORIA;
+    App.put(wrap,
+      h('div', { class: 'lbl' }, noMor ? 'Периоды, за которые проценты не начисляются' : 'Периоды, за которые неустойка / проценты не начисляются'),
+      noMor ? null : mor.map(m => check(st.mor, m.id, m.label, cb, m.note)),
+      list,
+      h('button', { class: 'btn sm', onclick: () => { st.excl.push({ from: '', to: '', label: '' }); draw(); } }, '+ Свой период (банкротство, иные мораторные периоды)'));
+    return wrap;
+  };
+
+  /* Редактор обязательств (этапов) с платежами */
+  App.debtsEditor = function (st, cb, L) {
+    const wrap = h('div');
+    const draw = () => {
+      wrap.innerHTML = '';
+      st.debts.forEach((d, i) => {
+        const evBox = h('div');
+        const drawEv = () => {
+          evBox.innerHTML = '';
+          d.events.forEach((e, j) => {
+            evBox.append(h('div', { class: 'ev' },
+              field('Дата', dateInput(e, 'date', cb)),
+              field('Сумма, ₽', moneyInput(e, 'amount', cb)),
+              field('Что произошло', select(e, 'type', [['pay', L.pay], ['add', L.add]], cb)),
+              h('button', { class: 'btn sm danger', onclick: () => { d.events.splice(j, 1); drawEv(); cb(); } }, 'Убрать')));
+          });
+        };
+        drawEv();
+        wrap.append(h('div', { class: 'card debt' },
+          h('div', { class: 'card-h' }, h('span', null, L.title + ' ' + (st.debts.length > 1 ? (i + 1) : '')),
+            st.debts.length > 1 ? h('button', { class: 'btn sm danger', onclick: () => { st.debts.splice(i, 1); draw(); cb(); } }, 'Удалить') : null),
+          h('div', { class: 'grid2' },
+            field('Название (этап, акт, счёт)', textInput(d, 'name', cb, 'напр. Этап 2, акт № 5')),
+            field(L.amount, moneyInput(d, 'amount', cb), L.amountHint),
+            field(L.due, dateInput(d, 'due', cb)),
+            field('Дата фактического исполнения (если отличается от общей даты расчёта)', dateInput(d, 'end', cb))),
+          h('details', { class: 'more', open: d.events.length > 0 },
+            h('summary', null, 'Частичные оплаты и изменение суммы (' + d.events.length + ')'),
+            evBox,
+            h('button', { class: 'btn sm', onclick: () => { d.events.push({ date: '', amount: null, type: 'pay' }); drawEv(); } }, '+ Добавить платёж / изменение'))));
+      });
+      wrap.append(h('button', { class: 'btn', onclick: () => { st.debts.push(App.newDebt()); draw(); } }, '+ Добавить ещё одно обязательство (этап)'));
+    };
+    draw();
+    wrap.redraw = draw;
+    return wrap;
+  };
+
+  App.toCfgDebts = function (st) {
+    return st.debts.map(d => ({
+      name: d.name, amount: d.amount, due: E.fromISO(d.due), end: E.fromISO(d.end),
+      events: d.events.map(e => ({ date: E.fromISO(e.date), amount: e.amount, type: e.type }))
+    }));
+  };
+  App.fmtDay = n => E.fmtDate(n) + ' (' + E.DOW_SHORT[E.dow(n)] + ')';
+  App.M = E.fmtMoney;
+})(window);
+
+/* Экраны: сроки и дни, неустойка, ст. 395 / 317.1, история, данные */
+(function (root) {
+  'use strict';
+  const E = root.Engine, App = root.App, h = App.h, DATA = root.RC_DATA;
+  const put = App.put, M = E.fmtMoney, D = E.fmtDate, field = App.field;
+  const days = n => E.fmtInt(n) + ' ' + E.daysWord(n);
+  const asOf = () => 'Ключевая ставка ЦБ РФ — по данным приложения на ' + D(E.fromISO(DATA.RATES_ASOF)) +
+    '; производственный календарь — ' + DATA.CAL_FROM + '–' + DATA.CAL_TO + ' гг.';
+  const stamp = () => 'Сформировано ' + D(E.todayDn()) + '. Расчёт носит справочный характер; перед использованием в процессе проверьте исходные данные и применимость норм.';
+  const seg = (items, cur, pick) => h('div', { class: 'seg' }, items.map(i => h('button', { class: cur === i[0] ? 'on' : '', onclick: () => pick(i[0]) }, i[1])));
+  const sel = (st, k, opts, cb) => App.select(st, k, opts, cb);
+
+  function addMonths(n, k) {
+    const d = new Date(n * E.MS);
+    let y = d.getUTCFullYear(), m = d.getUTCMonth() + k;
+    y += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
+    const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    return E.dn(y, m + 1, Math.min(d.getUTCDate(), last));
+  }
+  const dayName = n => D(n) + ', ' + E.DOW_LONG[E.dow(n)];
+
+  /* =============== 1. СРОКИ И ДНИ =============== */
+  function buildDays(el) {
+    el.innerHTML = '';
+    const st = App.S.days;
+    const out = h('div');
+    const recalc = () => { App.save(); App.renderResult(out, calcDays(st)); };
+    const settings = h('div', { class: 'card' },
+      h('div', { class: 'grid2' },
+        field('Рабочая неделя', sel(st, 'week', [[5, 'Пятидневная (сб, вс — выходные)'], [6, 'Шестидневная (вс — выходной, приблизительно)']], recalc))),
+      App.check(st, 'covid', 'Считать нерабочими дни 2020 г. по указам Президента РФ (30.03–30.04 и 06–08.05.2020)', recalc),
+      App.check(st, 'apply193', 'Если последний день срока нерабочий — перенос на ближайший рабочий день (ст. 193 ГК РФ)', recalc));
+    const panel = h('div');
+    const drawPanel = () => {
+      panel.innerHTML = '';
+      if (st.mode === 'between') {
+        put(panel, h('div', { class: 'card' },
+          h('h2', null, 'Сколько дней между датами'),
+          h('div', { class: 'grid2' }, field('С даты', App.dateInput(st.between, 'from', recalc)), field('По дату', App.dateInput(st.between, 'to', recalc))),
+          App.check(st.between, 'incStart', 'Включать первую дату в подсчёт', recalc),
+          App.check(st.between, 'incEnd', 'Включать последнюю дату в подсчёт', recalc)));
+      } else if (st.mode === 'add') {
+        const b = st.add;
+        put(panel, h('div', { class: 'card' },
+          h('h2', null, 'Какая дата будет через (или была до) N дней'),
+          h('div', { class: 'grid2' },
+            field('Начальная дата (событие)', App.dateInput(b, 'start', recalc)),
+            field('Направление', sel(b, 'dir', [['after', 'Вперёд — срок после даты'], ['before', 'Назад — срок до даты']], recalc)),
+            field('Срок', App.numInput(b, 'n', recalc, '30')),
+            field('Единица', sel(b, 'unit', [['cal', 'Календарные дни'], ['work', 'Рабочие дни'], ['week', 'Недели'], ['month', 'Месяцы'], ['year', 'Годы']], recalc))),
+          App.check(b, 'incStart', 'Считать и день начала (по ст. 191 ГК РФ срок начинается на следующий день — обычно не отмечают)', recalc)));
+      } else {
+        const b = st.delay;
+        const rowsBox = h('div');
+        const drawRows = () => {
+          rowsBox.innerHTML = '';
+          b.rows.forEach((r, i) => put(rowsBox, h('div', { class: 'ev' },
+            field('Этап / обязательство', App.textInput(r, 'name', recalc, 'напр. Акт № 3')),
+            field('Срок исполнения', App.dateInput(r, 'due', recalc)),
+            field('Фактически (пусто — дата расчёта)', App.dateInput(r, 'fact', recalc)),
+            b.rows.length > 1 ? h('button', { class: 'btn sm danger', onclick: () => { b.rows.splice(i, 1); drawRows(); recalc(); } }, 'Убрать') : h('span'))));
+        };
+        drawRows();
+        put(panel, h('div', { class: 'card' },
+          h('h2', null, 'Просрочка по срокам'),
+          field('Дата расчёта (по умолчанию — сегодня)', App.dateInput(b, 'end', recalc)),
+          rowsBox,
+          h('button', { class: 'btn sm', onclick: () => { b.rows.push({ name: '', due: '', fact: '' }); drawRows(); } }, '+ Добавить этап'),
+          h('div', { class: 'grid2', style: 'margin-top:10px' },
+            field('Просрочка начинается', sel(b, 'firstDay', [['next', 'На следующий день после срока'], ['same', 'В день срока']], recalc)),
+            h('div', null, App.check(b, 'inclusive', 'Включать дату исполнения / расчёта в просрочку', recalc)))));
+      }
+    };
+    put(el, 
+      seg([['between', 'Между датами'], ['add', 'Срок от даты'], ['delay', 'Просрочка']], st.mode, m => { st.mode = m; buildDays(el); recalc(); }),
+      settings, panel, out);
+    drawPanel();
+    recalc();
+  }
+
+  function calcDays(st) {
+    const cal = App.calendar({ week: +st.week, covid: st.covid });
+    const note = (() => { const l = []; if (+st.week === 6) l.push('Шестидневная неделя рассчитана по ст. 112 ТК РФ без учёта переносов — приблизительно.'); return l; })();
+    const foot = asOf() + ' ' + stamp();
+    const warnAprx = n => cal.approx(n) ? 'Для ' + E.yearOf(n) + ' г. в календаре нет данных — применены выходные и праздники по ст. 112 ТК РФ без переносов Правительства. Добавьте переносы в разделе «Данные».' : null;
+    if (st.mode === 'between') {
+      const b = st.between, a = E.fromISO(b.from), z = E.fromISO(b.to);
+      if (a == null || z == null) return { empty: 'Укажите обе даты — результат появится сразу.' };
+      if (z < a) return { empty: 'Конечная дата раньше начальной.' };
+      const fa = a + (b.incStart ? 0 : 1), fz = z - (b.incEnd ? 0 : 1);
+      const cd = Math.max(0, fz - fa + 1), wd = cd ? E.countWork(cal, fa, fz) : 0;
+      const ymd = E.ymdDiff(a, z + (b.incEnd ? 1 : 0) - (b.incStart ? 0 : 1) + 0);
+      const hol = [];
+      for (let n = fa; n <= fz && hol.length < 60; n++) if (cal.isOff(n) && E.dow(n) !== 0 && E.dow(n) !== 6) hol.push(D(n) + ' — ' + cal.kind(n));
+      const blocks = [{ t: 'kv', rows: [['Период', D(a) + ' – ' + D(z)], ['Первая и последняя даты в подсчёте', (b.incStart ? 'включены' : 'не включены') + ' / ' + (b.incEnd ? 'включены' : 'не включены')], ['Календарных дней', String(cd)], ['Рабочих дней', String(wd)], ['Выходных и праздничных', String(cd - wd)], ['В годах, месяцах, днях', ymd.y + ' г. ' + ymd.m + ' мес. ' + ymd.d + ' дн.']] }];
+      if (hol.length) blocks.push({ t: 'h', text: 'Праздничные и перенесённые дни в периоде (пн–пт)' }, { t: 'list', items: hol });
+      const w = warnAprx(a) || warnAprx(z); if (w) blocks.push({ t: 'warn', text: w });
+      note.forEach(x => blocks.push({ t: 'note', text: x }));
+      const model = { title: 'Расчёт количества дней', sub: D(a) + ' – ' + D(z), blocks, footer: foot };
+      return { hero: { label: 'Календарных дней', value: E.fmtInt(cd), chips: ['рабочих: ' + wd, 'выходных и праздничных: ' + (cd - wd)], sub: ymd.y + ' г. ' + ymd.m + ' мес. ' + ymd.d + ' дн.' }, warnings: [w].filter(Boolean), model, file: 'Дни_' + b.from + '_' + b.to };
+    }
+    if (st.mode === 'add') {
+      const b = st.add, s = E.fromISO(b.start), n = b.n;
+      if (s == null || n == null || n < 0) return { empty: 'Укажите дату и срок.' };
+      const sign = b.dir === 'before' ? -1 : 1;
+      let raw;
+      if (b.unit === 'work') {
+        let k = n; if (b.incStart && !cal.isOff(s) && k > 0) k--;
+        raw = E.addWorkdays(cal, s, k, sign < 0);
+        if (b.incStart && !cal.isOff(s) && n > 0 && k === n - 1 && n === 1) raw = s;
+      } else if (b.unit === 'cal' || b.unit === 'week') raw = s + sign * (n * (b.unit === 'week' ? 7 : 1)) - sign * (b.incStart ? 1 : 0);
+      else raw = addMonths(s, sign * n * (b.unit === 'year' ? 12 : 1));
+      let fin = raw, shifted = false;
+      if (st.apply193 && sign > 0 && b.unit !== 'work' && cal.isOff(raw)) { fin = E.nextWorkday(cal, raw); shifted = true; }
+      const unitTxt = { cal: 'календарных дней', work: 'рабочих дней', week: 'недель', month: 'месяцев', year: 'лет' }[b.unit];
+      const blocks = [{ t: 'kv', rows: [['Начальная дата', dayName(s)], ['Срок', n + ' ' + unitTxt + (sign < 0 ? ' назад' : '')], ['Последний день срока (до ст. 193)', dayName(raw)]].concat(shifted ? [['Перенос по ст. 193 ГК РФ', 'последний день нерабочий («' + cal.kind(raw) + '») → ' + dayName(fin)]] : []).concat(sign > 0 ? [['Просрочка начинается с', dayName(fin + 1)]] : []) }];
+      const w = warnAprx(s) || warnAprx(fin); if (w) blocks.push({ t: 'warn', text: w });
+      blocks.push({ t: 'note', text: 'Срок исчисляется по правилам гл. 11 ГК РФ: течёт со дня, следующего за календарной датой (ст. 191); месячный срок оканчивается в соответствующее число месяца (ст. 192).' });
+      const model = { title: 'Расчёт срока', sub: D(s) + ' + ' + n + ' ' + unitTxt, blocks, footer: foot };
+      return { hero: { label: sign > 0 ? 'Последний день срока' : 'Дата', value: D(fin), sub: E.DOW_LONG[E.dow(fin)] + (shifted ? ' · перенесён с ' + D(raw) + ' (ст. 193 ГК РФ)' : ''), chips: sign > 0 ? ['просрочка с ' + D(fin + 1)] : null }, warnings: [w].filter(Boolean), model, file: 'Срок_' + b.start };
+    }
+    // просрочка по срокам
+    const b = st.delay, end0 = E.fromISO(b.end);
+    const rows = [], items = [];
+    let sumC = 0, sumW = 0, maxC = 0, cnt = 0;
+    b.rows.forEach((r, i) => {
+      const due = E.fromISO(r.due); if (due == null) return;
+      const endR = E.fromISO(r.fact) != null ? E.fromISO(r.fact) : end0; if (endR == null) return;
+      const c = E.calcDelay(cal, { due, end: endR, apply193: st.apply193, firstDay: b.firstDay, inclusive: b.inclusive });
+      cnt++; sumC += c.calDays; sumW += c.workDays; maxC = Math.max(maxC, c.calDays);
+      rows.push([r.name || 'Обязательство ' + (i + 1), D(due), c.shifted ? D(c.effDue) + ' (ст. 193)' : D(due), D(endR), String(c.calDays), String(c.workDays)]);
+    });
+    if (!cnt) return { empty: 'Укажите срок исполнения (и дату расчёта) — просрочка посчитается сразу.' };
+    const blocks = [{ t: 'table', head: ['Этап', 'Срок по договору', 'Срок с учётом ст. 193', 'Исполнено / расчёт на', 'Календ. дней', 'Рабочих дней'], align: ['l', 'l', 'l', 'l', 'r', 'r'], rows, foot: cnt > 1 ? ['Всего', '', '', '', String(sumC), String(sumW)] : null }];
+    blocks.push({ t: 'note', text: 'Просрочка начинается ' + (b.firstDay === 'same' ? 'в день срока' : 'на следующий день после последнего дня срока') + '; дата исполнения ' + (b.inclusive ? 'включена' : 'не включена') + '.' });
+    const model = { title: 'Расчёт дней просрочки', sub: 'на ' + D(end0 != null ? end0 : E.todayDn()), blocks, footer: foot };
+    return { hero: { label: cnt > 1 ? 'Дней просрочки по всем этапам' : 'Дней просрочки (календарных)', value: E.fmtInt(cnt > 1 ? sumC : maxC), chips: ['рабочих: ' + sumW].concat(cnt > 1 ? ['наибольшая: ' + maxC] : []) }, model, file: 'Просрочка_дни' };
+  }
+
+  /* =============== общие блоки для неустойки и процентов =============== */
+  function vatBlock(st, cb) {
+    const rateF = field('Ставка НДС', sel(st, 'vatRate', [[22, '22% (с 2026 г.)'], [20, '20%'], [18, '18%'], [10, '10%']].map(x => x), () => { st.vatRate = +st.vatRate; cb(); }));
+    const wrap = h('div', { class: 'grid2' },
+      field('НДС', sel(st, 'vatMode', [['none', 'Начислять на сумму как указана'], ['exclude', 'Сумма с НДС — исключить НДС из базы'], ['add', 'Сумма без НДС — добавить НДС к базе']], () => { rateF.style.display = st.vatMode === 'none' ? 'none' : ''; cb(); })), rateF);
+    rateF.style.display = st.vatMode === 'none' ? 'none' : '';
+    return wrap;
+  }
+  const vatOf = st => (st.vatMode === 'none' ? null : { mode: st.vatMode, rate: +st.vatRate });
+  const vatText = st => st.vatMode === 'none' ? 'на сумму как указана' : st.vatMode === 'exclude' ? 'база без НДС ' + st.vatRate + '% (сумма указана с НДС)' : 'база с НДС ' + st.vatRate + '% (сумма указана без НДС)';
+
+  function periodBlock(st, cb) {
+    return h('div', { class: 'card' },
+      h('h2', null, 'Период расчёта'),
+      h('div', { class: 'grid2' },
+        field('Рассчитать по дату (оплаты / иска / сегодня)', App.dateInput(st, 'end', cb)),
+        field('Начало просрочки', sel(st, 'firstDay', [['next', 'Со дня, следующего за сроком'], ['same', 'С дня срока']], cb))),
+      App.check(st, 'inclusive', 'Включать последний день (день оплаты) в период начисления', cb, 'Ст. 395 ГК РФ — проценты «по день уплаты»; уточните, как это принято в вашем суде.'),
+      h('div', { style: 'margin-top:8px' }, vatBlock(st, cb)));
+  }
+
+  function rateStr(r, cfg) {
+    if (cfg.mode === 'pct') return E.fmtRate(r.rateVal) + '% в день';
+    if (cfg.mode === 'fixed') return M(r.rateVal) + ' ₽ в день';
+    if (cfg.mode === 'keyfrac') return '1/' + (cfg.divisor || 300) + ' × ' + E.fmtRate(r.rateVal * (cfg.mult || 1)) + '%';
+    return E.fmtRate(r.rateVal) + '% годовых';
+  }
+  function formula(r, cfg) {
+    const bal = r.bal == null ? '' : M(r.bal);
+    if (cfg.mode === 'pct') return bal + ' × ' + E.fmtRate(r.rateVal) + '% × ' + r.days;
+    if (cfg.mode === 'fixed') return M(r.rateVal) + ' × ' + r.days;
+    if (cfg.mode === 'keyfrac') return bal + ' × 1/' + (cfg.divisor || 300) + ' × ' + E.fmtRate(r.rateVal * (cfg.mult || 1)) + '% × ' + r.days;
+    return bal + ' × ' + E.fmtRate(r.rateVal) + '% × ' + r.days + ' / ' + r.diy;
+  }
+  function debtBlocks(res, cfg, what) {
+    const blocks = [];
+    res.debts.forEach((d, i) => {
+      if (d.due == null) return;
+      blocks.push({ t: 'h', text: (d.name ? d.name : 'Обязательство ' + (i + 1)) });
+      blocks.push({ t: 'kv', rows: [['Сумма', d.amount > 0 ? M(d.amount) + ' ₽' : '—'], ['Срок исполнения', D(d.due)], ['Период начисления', d.start != null && d.endUsed != null ? D(d.start) + ' – ' + D(cfg.inclusive !== false ? d.endUsed : d.endUsed - 1) : '—']] });
+      if (!d.rows.length) { blocks.push({ t: 'p', text: 'Начисление за выбранный период отсутствует.' }); return; }
+      const rows = d.rows.map(r => r.ex
+        ? { c: [r.from === r.to ? D(r.from) : D(r.from) + ' – ' + D(r.to), String(r.days), r.bal == null ? '' : M(r.bal), '—', 'не начисляется: ' + r.exLabel, '0,00'], cls: 'muted' }
+        : [r.from === r.to ? D(r.from) : D(r.from) + ' – ' + D(r.to), String(r.days), r.bal == null ? '' : M(r.bal), rateStr(r, cfg), formula(r, cfg), M(r.amount)]);
+      const accr = d.rows.reduce((s, r) => s + (r.ex ? 0 : r.days), 0);
+      blocks.push({ t: 'table', head: ['Период', 'Дней', 'Сумма долга, ₽', 'Ставка', 'Расчёт', what + ', ₽'], align: ['l', 'r', 'r', 'l', 'l', 'r'], rows, foot: ['Итого', String(accr), '', '', '', M(d.sum)] });
+    });
+    return blocks;
+  }
+  function overlapWarn(st, debts, end) {
+    const out = [];
+    DATA.MORATORIA.forEach(m => {
+      if (st.mor && st.mor[m.id]) return;
+      const a = E.fromISO(m.from), b = E.fromISO(m.to);
+      const hit = debts.some(d => d.due != null && (d.end != null ? d.end : end) != null && d.due < b && (d.end != null ? d.end : end) >= a);
+      if (hit) out.push('Период пересекается с мораторием «' + m.label + '» (' + D(a) + ' – ' + D(b) + '). Если он применим к должнику, отметьте его ниже — расчёт изменится.');
+    });
+    return out;
+  }
+  const endOf = st => E.fromISO(st.end);
+  function checkInput(st) {
+    const debts = App.toCfgDebts(st);
+    const end = endOf(st);
+    if (!debts.some(d => d.due != null)) return { empty: 'Укажите срок исполнения обязательства — расчёт появится сразу.' };
+    if (end == null && !debts.some(d => d.end != null)) return { empty: 'Укажите дату, по которую нужно рассчитать.' };
+    return { debts, end };
+  }
+
+  /* =============== 2. НЕУСТОЙКА =============== */
+  function buildPen(el) {
+    el.innerHTML = '';
+    const st = App.S.pen;
+    const out = h('div');
+    const recalc = () => { App.save(); App.renderResult(out, calcPen(st)); };
+    const kindBox = h('div', { style: 'margin-top:10px' });
+    const tiersBox = h('div');
+    const drawKind = () => {
+      kindBox.innerHTML = '';
+      const k = st.kind;
+      if (k === 'pct') put(kindBox, field('Ставка, % от суммы за каждый день', App.numInput(st, 'pct', recalc, '0,1')));
+      if (k === 'fixed') put(kindBox, field('Сумма за каждый день, ₽', App.moneyInput(st, 'fixed', recalc), 'Базовая сумма долга при этом не нужна.'));
+      if (k === 'annual') put(kindBox, field('Ставка, % годовых', App.numInput(st, 'annual', recalc, '20'), 'Дни считаются с учётом 365/366 в году.'));
+      if (k === 'key') put(kindBox, field('Ключевая ставка ЦБ × множитель', App.numInput(st, 'mult', recalc, '2'), 'Годовая ставка = ключевая × множитель; ключевая берётся по периодам её действия.'));
+      if (k === 'keyfrac') put(kindBox, h('div', { class: 'grid3' },
+        field('Знаменатель доли (1/N)', App.numInput(st, 'divisor', recalc, '300')),
+        field('Множитель ставки', App.numInput(st, 'mult', recalc, '1')),
+        field('Какую ключевую ставку брать', sel(st, 'keyDateMode', [['each', 'Действующую в каждый период'], ['end', 'На дату окончания (оплаты)'], ['date', 'На указанную дату']], () => { drawKind(); recalc(); }))),
+        st.keyDateMode === 'date' ? field('Дата, на которую берётся ставка', App.dateInput(st, 'keyDate', recalc)) : null);
+      tiersBox.style.display = (k === 'pct' || k === 'fixed' || k === 'annual') ? '' : 'none';
+    };
+    const drawTiers = () => {
+      tiersBox.innerHTML = '';
+      const rows = h('div');
+      const draw = () => {
+        rows.innerHTML = '';
+        st.tiers.forEach((t, i) => put(rows, h('div', { class: 'ev' },
+          field('С какого дня просрочки', App.numInput(t, 'from', recalc, '31')),
+          field('Новая ставка (в тех же единицах)', App.numInput(t, 'val', recalc)),
+          h('span'), h('button', { class: 'btn sm danger', onclick: () => { st.tiers.splice(i, 1); draw(); recalc(); } }, 'Убрать'))));
+      };
+      draw();
+      put(tiersBox, h('details', { class: 'more', open: st.tiers.length > 0 },
+        h('summary', null, 'Ступенчатая ставка (с N-го дня просрочки ставка меняется)'), rows,
+        h('button', { class: 'btn sm', onclick: () => { st.tiers.push({ from: 31, val: null }); draw(); } }, '+ Добавить ступень')));
+    };
+    const capBox = h('div');
+    const drawCap = () => {
+      capBox.innerHTML = '';
+      const c = st.cap;
+      put(capBox, field('Ограничение суммы неустойки', sel(c, 'mode', [['none', 'Нет'], ['pctRef', '% от суммы (цены договора, этапа)'], ['pctDebt', '% от суммы каждого обязательства'], ['fixed', 'Фиксированная сумма']], () => { drawCap(); recalc(); })));
+      if (c.mode === 'pctRef') put(capBox, h('div', { class: 'grid2' }, field('Предельный размер, %', App.numInput(c, 'value', recalc, '10')), field('От суммы, ₽ (цена договора, этапа)', App.moneyInput(c, 'ref', recalc))), App.check(c, 'withFine', 'Лимит общий для неустойки и штрафа', recalc));
+      if (c.mode === 'pctDebt') put(capBox, field('Предельный размер, %', App.numInput(c, 'value', recalc, '10')));
+      if (c.mode === 'fixed') put(capBox, h('div', { class: 'grid2' }, field('Предельная сумма, ₽', App.moneyInput(c, 'value', recalc))), App.check(c, 'withFine', 'Лимит общий для неустойки и штрафа', recalc));
+    };
+    const redBox = h('div');
+    const drawRed = () => {
+      redBox.innerHTML = '';
+      const r = st.red;
+      put(redBox, App.check(r, 'on', 'Показать расчёт снижения неустойки (ст. 333 ГК РФ)', () => { drawRed(); recalc(); }, 'Сравнение с нижним пределом — процентами по ст. 395 ГК РФ.'));
+      if (!r.on) return;
+      put(redBox, field('На какую ставку снизить', sel(r, 'mode', [['mult', 'Ключевая ставка × множитель (годовых)'], ['annual', 'Своя ставка, % годовых'], ['perDay', 'Своя ставка, % в день'], ['sum', 'Конкретная сумма']], () => { drawRed(); recalc(); })));
+      if (r.mode === 'mult') put(redBox, field('Множитель', App.numInput(r, 'mult', recalc, '2')));
+      if (r.mode === 'annual') put(redBox, field('% годовых', App.numInput(r, 'annual', recalc)));
+      if (r.mode === 'perDay') put(redBox, field('% в день', App.numInput(r, 'perDay', recalc, '0,05')));
+      if (r.mode === 'sum') put(redBox, field('Сумма, ₽', App.moneyInput(r, 'sum', recalc)));
+    };
+    drawKind(); drawTiers(); drawCap(); drawRed();
+    put(el, 
+      h('div', { class: 'card' }, h('h2', null, 'Договор'), field('Описание расчёта (для отчёта)', App.textInput(st, 'title', recalc, 'напр. Договор подряда № 12 от 01.03.2026'))),
+      h('div', { class: 'card' }, h('h2', null, 'Условие о неустойке'),
+        field('Как рассчитывается неустойка по договору', sel(st, 'kind', [['pct', '% от суммы за каждый день'], ['fixed', 'Фиксированная сумма за каждый день'], ['keyfrac', 'Доля ключевой ставки (1/300 и т.п.)'], ['key', 'Ключевая ставка × множитель, годовых'], ['annual', '% годовых']], () => { drawKind(); recalc(); })),
+        kindBox, tiersBox),
+      App.debtsEditor(st, recalc, { title: 'Обязательство', amount: 'Сумма, от которой считается неустойка, ₽', amountHint: 'Цена этапа, неоплаченная часть, стоимость невыполненных работ', due: 'Последний день срока исполнения', pay: 'Исполнение / оплата части', add: 'Увеличение суммы (новая задолженность)' }),
+      periodBlock(st, recalc),
+      h('div', { class: 'card' }, h('h2', null, 'Мораторий и исключения'), App.exclEditor(st, recalc)),
+      h('div', { class: 'card' }, h('h2', null, 'Лимит и штраф'), capBox, h('div', { style: 'margin-top:8px' }, field('Штраф (единовременно), ₽', App.moneyInput(st, 'fine', recalc)))),
+      h('div', { class: 'card' }, h('h2', null, 'Снижение по ст. 333 ГК РФ'), redBox),
+      out);
+    recalc();
+  }
+
+  function penCfg(st) {
+    const base = { firstDay: st.firstDay, inclusive: st.inclusive, vat: vatOf(st), excl: App.exclFromState(st) };
+    const k = st.kind;
+    let tiers = null;
+    const main = k === 'pct' ? st.pct : k === 'fixed' ? st.fixed : k === 'annual' ? st.annual : null;
+    if (main != null || st.tiers.length) {
+      tiers = [{ from: 1, val: main || 0 }].concat(st.tiers.filter(t => t.from > 1 && t.val != null).map(t => ({ from: Math.round(t.from), val: t.val })));
+    }
+    const cfg = Object.assign({ mode: k, mult: st.mult || 1, divisor: st.divisor || 300, keyDateMode: st.keyDateMode, keyDate: E.fromISO(st.keyDate), tiers: (k === 'pct' || k === 'fixed' || k === 'annual') ? tiers : null }, base);
+    return cfg;
+  }
+  function kindText(st) {
+    const k = st.kind;
+    if (k === 'pct') return E.fmtRate(st.pct || 0) + '% от суммы за каждый день' + (st.tiers.length ? ' (со ступенями)' : '');
+    if (k === 'fixed') return M(st.fixed || 0) + ' ₽ за каждый день' + (st.tiers.length ? ' (со ступенями)' : '');
+    if (k === 'annual') return E.fmtRate(st.annual || 0) + '% годовых';
+    if (k === 'key') return 'ключевая ставка ЦБ × ' + E.fmtRate(st.mult || 1) + ' (годовых)';
+    return '1/' + (st.divisor || 300) + (st.mult && st.mult !== 1 ? ' × ' + st.mult : '') + ' ключевой ставки ЦБ в день (' + (st.keyDateMode === 'each' ? 'по периодам её действия' : st.keyDateMode === 'end' ? 'на дату окончания' : 'на ' + D(E.fromISO(st.keyDate))) + ')';
+  }
+
+  function calcPen(st) {
+    const inp = checkInput(st); if (inp.empty) return inp;
+    const cfg = penCfg(st);
+    if (cfg.mode === 'pct' && !(cfg.tiers && cfg.tiers[0].val > 0)) return { empty: 'Укажите ставку неустойки.' };
+    if (cfg.mode === 'fixed' && !(cfg.tiers && cfg.tiers[0].val > 0)) return { empty: 'Укажите сумму неустойки за день.' };
+    if (cfg.mode === 'annual' && !(cfg.tiers && cfg.tiers[0].val > 0)) return { empty: 'Укажите ставку, % годовых.' };
+    if (cfg.mode !== 'fixed' && !st.debts.some(d => d.amount > 0)) return { empty: 'Укажите сумму, от которой начисляется неустойка.' };
+    cfg.debts = inp.debts; cfg.end = inp.end;
+    const res = E.calcDebts(cfg, App.rates());
+    const fin = E.finalizePenalty(res, { cap: st.cap.mode === 'none' ? null : { mode: st.cap.mode, value: st.cap.value, ref: st.cap.ref, withFine: st.cap.withFine }, fine: st.fine });
+    const warnings = res.warnings.concat(overlapWarn(st, inp.debts, inp.end));
+    const blocks = [{ t: 'kv', rows: [['Основание', st.title || '—'], ['Условие о неустойке', kindText(st)], ['Расчёт по дату', inp.end != null ? D(inp.end) + (st.inclusive ? ' (включительно)' : ' (не включая)') : 'по датам обязательств'], ['Налог', vatText(st)]] }];
+    const exInfo = App.exclFromState(st);
+    if (exInfo.length) blocks.push({ t: 'kv', rows: exInfo.map(x => ['Не начисляется', D(x.from) + ' – ' + D(x.to) + ' — ' + x.label]) });
+    blocks.push.apply(blocks, debtBlocks(res, cfg, 'Неустойка'));
+    const sum = [['Неустойка по расчёту', M(res.total) + ' ₽']];
+    if (fin.capApplied) sum.push(['Ограничение (лимит)', st.cap.mode === 'pctDebt' ? st.cap.value + '% от суммы каждого обязательства' : fin.cap != null ? M(fin.cap) + ' ₽' : '']), sum.push(['Неустойка с учётом лимита', M(fin.penaltyAfterCap) + ' ₽']);
+    if (fin.fine > 0) sum.push(['Штраф', M(fin.fine) + ' ₽']);
+    sum.push(['Итого', M(fin.final) + ' ₽']);
+    blocks.push({ t: 'h', text: 'Итог' }, { t: 'kv', rows: sum });
+    let reduced = null;
+    if (st.red.on) {
+      const r = st.red;
+      const floor = E.calcDebts(Object.assign({}, cfg, { mode: 'key', mult: 1, tiers: null }), App.rates()).total;
+      let rv = null, how = '';
+      if (r.mode === 'mult' && r.mult > 0) { rv = E.calcDebts(Object.assign({}, cfg, { mode: 'key', mult: r.mult, tiers: null }), App.rates()).total; how = 'ключевая ставка × ' + E.fmtRate(r.mult); }
+      else if (r.mode === 'annual' && r.annual > 0) { rv = E.calcDebts(Object.assign({}, cfg, { mode: 'annual', tiers: [{ from: 1, val: r.annual }] }), App.rates()).total; how = E.fmtRate(r.annual) + '% годовых'; }
+      else if (r.mode === 'perDay' && r.perDay > 0) { rv = E.calcDebts(Object.assign({}, cfg, { mode: 'pct', tiers: [{ from: 1, val: r.perDay }] }), App.rates()).total; how = E.fmtRate(r.perDay) + '% в день'; }
+      else if (r.mode === 'sum' && r.sum >= 0 && r.sum != null) { rv = r.sum; how = 'заданная сумма'; }
+      if (rv != null) {
+        reduced = rv;
+        const base = fin.penaltyAfterCap;
+        const rows = [['Неустойка по договору', M(base) + ' ₽'], ['Сниженная неустойка (' + how + ')', M(rv) + ' ₽'], ['Нижний предел — проценты по ст. 395 ГК РФ (ключевая ставка)', M(floor) + ' ₽'], ['Размер снижения', M(Math.max(0, base - rv)) + ' ₽ (' + (base > 0 ? E.fmtRate(Math.round((base - rv) / base * 1000) / 10) : '0') + '%)']];
+        blocks.push({ t: 'h', text: 'Снижение неустойки по ст. 333 ГК РФ' }, { t: 'kv', rows });
+        if (rv < floor - 0.005) { const w = 'Сниженная неустойка меньше процентов по ст. 395 ГК РФ — для обязательств, связанных с предпринимательской деятельностью, снижение ниже этого предела, как правило, недопустимо (п. 6 ст. 395 ГК РФ; разъяснения ВС РФ).'; blocks.push({ t: 'warn', text: w }); warnings.push(w); }
+        if (rv > base) blocks.push({ t: 'note', text: 'Сниженный размер превышает неустойку по договору — снижение не требуется.' });
+      } else blocks.push({ t: 'h', text: 'Снижение по ст. 333 ГК РФ' }, { t: 'p', text: 'Укажите параметры снижения.' });
+    }
+    warnings.forEach(w => { if (!/ст\. 395 ГК РФ — для обязательств/.test(w)) blocks.push({ t: 'note', text: w }); });
+    const model = { title: 'Расчёт договорной неустойки', sub: st.title || '', blocks, footer: (st.kind === 'key' || st.kind === 'keyfrac' ? asOf() + ' ' : '') + stamp() };
+    const chips = ['дней начисления: ' + res.accrDays];
+    if (res.exclDays) chips.push('не начисляется: ' + res.exclDays + ' дн.');
+    if (fin.capApplied) chips.push('применён лимит');
+    if (reduced != null) chips.push('после ст. 333: ' + M(reduced) + ' ₽');
+    const title = (st.title || 'Неустойка') + ' — ' + M(fin.final) + ' ₽';
+    return {
+      hero: { label: 'К взысканию (неустойка' + (fin.fine > 0 ? ' и штраф' : '') + ')', value: M(fin.final) + ' ₽', chips },
+      warnings, model, file: 'Неустойка_' + (st.title || '').slice(0, 30),
+      save: () => App.saveHistory('pen', title, 'по ' + (inp.end != null ? D(inp.end) : '—') + ', ' + kindText(st), st)
+    };
+  }
+
+  /* =============== 3. СТ. 395 / 317.1 =============== */
+  function buildInt(el) {
+    el.innerHTML = '';
+    const st = App.S.int;
+    const out = h('div');
+    const recalc = () => { App.save(); App.renderResult(out, calcInt(st)); };
+    const kindBox = h('div'), excl = h('div');
+    const drawKind = () => {
+      kindBox.innerHTML = '';
+      if (st.kind === '317') put(kindBox, h('div', { class: 'grid2' },
+        field('Ставка процентов', sel(st, 'rateSrc', [['key', 'Ключевая ставка ЦБ (по умолчанию)'], ['annual', 'Ставка по договору']], () => { drawKind(); recalc(); })),
+        st.rateSrc === 'annual' ? field('Ставка по договору, % годовых', App.numInput(st, 'annual', recalc, '12')) : h('span')),
+        h('div', { class: 'hint' }, 'Проценты за пользование денежными средствами начисляются на сумму долга без капитализации (проценты на проценты не начисляются). Проверьте, что договор или закон предусматривает начисление.'));
+      excl.innerHTML = '';
+      put(excl, App.exclEditor(st, recalc, st.kind === '317'));
+    };
+    put(el, 
+      h('div', { class: 'card' },
+        h('h2', null, 'Вид процентов'),
+        seg([['395', 'Ст. 395 ГК — за просрочку'], ['317', 'Ст. 317.1 ГК — за пользование']], st.kind, k => { st.kind = k; buildInt(el); recalc(); }),
+        field('Описание расчёта (для отчёта)', App.textInput(st, 'title', recalc, 'напр. Взыскание по акту № 5'))),
+      App.debtsEditor(st, recalc, { title: 'Долг', amount: 'Сумма долга, ₽', amountHint: 'Основной долг, на который начисляются проценты', due: st.kind === '395' ? 'Последний день срока оплаты' : 'Дата, с которой начисляются проценты (последний день срока)', pay: 'Оплата части долга', add: 'Увеличение долга' }),
+      h('div', { class: 'card' }, kindBox),
+      periodBlock(st, recalc),
+      h('div', { class: 'card' }, h('h2', null, 'Мораторий и исключения'), excl),
+      out);
+    drawKind();
+    recalc();
+  }
+
+  function calcInt(st) {
+    const inp = checkInput(st); if (inp.empty) return inp;
+    if (!st.debts.some(d => d.amount > 0)) return { empty: 'Укажите сумму долга.' };
+    const is395 = st.kind === '395';
+    const stx = is395 ? st : Object.assign({}, st, { mor: {} });
+    const cfg = { firstDay: st.firstDay, inclusive: st.inclusive, vat: vatOf(st), excl: App.exclFromState(stx), debts: inp.debts, end: inp.end };
+    if (!is395 && st.rateSrc === 'annual') { if (!(st.annual > 0)) return { empty: 'Укажите ставку по договору.' }; cfg.mode = 'annual'; cfg.tiers = [{ from: 1, val: st.annual }]; }
+    else { cfg.mode = 'key'; cfg.mult = 1; }
+    const res = E.calcDebts(cfg, App.rates());
+    const warnings = res.warnings.slice();
+    if (is395) warnings.push.apply(warnings, overlapWarn(st, inp.debts, inp.end));
+    const what = is395 ? 'Проценты' : 'Проценты';
+    const rateTxt = cfg.mode === 'annual' ? E.fmtRate(st.annual) + '% годовых (по договору)' : 'ключевая ставка Банка России по периодам её действия';
+    const blocks = [{ t: 'kv', rows: [['Основание', st.title || '—'], ['Вид процентов', is395 ? 'Проценты за пользование чужими денежными средствами (ст. 395 ГК РФ)' : 'Проценты по денежному обязательству (ст. 317.1 ГК РФ)'], ['Ставка', rateTxt], ['Формула', 'Сумма долга × ставка × дни / дней в году (365 или 366)'], ['Расчёт по дату', inp.end != null ? D(inp.end) + (st.inclusive ? ' (включительно)' : ' (не включая)') : 'по датам долгов'], ['Налог', vatText(st)]] }];
+    const exInfo = App.exclFromState(stx);
+    if (exInfo.length) blocks.push({ t: 'kv', rows: exInfo.map(x => ['Не начисляется', D(x.from) + ' – ' + D(x.to) + ' — ' + x.label]) });
+    blocks.push.apply(blocks, debtBlocks(res, cfg, what));
+    blocks.push({ t: 'h', text: 'Итог' }, { t: 'kv', rows: [['Сумма долга (начальная)', M(res.debts.reduce((s, d) => s + (d.amount || 0), 0)) + ' ₽'], ['Проценты', M(res.total) + ' ₽']] });
+    warnings.forEach(w => blocks.push({ t: 'note', text: w }));
+    const model = { title: is395 ? 'Расчёт процентов по ст. 395 ГК РФ' : 'Расчёт процентов по ст. 317.1 ГК РФ', sub: st.title || '', blocks, footer: asOf() + ' ' + stamp() };
+    const chips = ['дней начисления: ' + res.accrDays];
+    if (res.exclDays) chips.push('не начисляется: ' + res.exclDays + ' дн.');
+    return {
+      hero: { label: is395 ? 'Проценты по ст. 395 ГК РФ' : 'Проценты по ст. 317.1 ГК РФ', value: M(res.total) + ' ₽', chips },
+      warnings, model, file: (is395 ? 'Проценты_395_' : 'Проценты_317_') + (st.title || '').slice(0, 30),
+      save: () => App.saveHistory('int', (st.title || (is395 ? 'Ст. 395' : 'Ст. 317.1')) + ' — ' + M(res.total) + ' ₽', 'по ' + (inp.end != null ? D(inp.end) : '—'), st)
+    };
+  }
+
+  /* =============== 4. ИСТОРИЯ =============== */
+  function buildHist(el) {
+    el.innerHTML = '';
+    const list = h('div', { class: 'card' });
+    const draw = () => {
+      list.innerHTML = '';
+      const items = App.hist();
+      put(list, h('h2', null, 'Сохранённые расчёты', items.length ? h('button', { class: 'btn sm danger', onclick: () => { if (confirm('Удалить всю историю?')) { App.setHist([]); draw(); } } }, 'Очистить') : null));
+      if (!items.length) { put(list, h('div', { class: 'empty' }, 'Здесь появятся расчёты, которые вы сохраните кнопкой «Сохранить в историю». Данные хранятся только на этом устройстве.')); return; }
+      items.forEach(it => put(list, h('div', { class: 'item' },
+        h('div', null, h('div', { class: 't' }, it.title), h('div', { class: 's' }, { pen: 'Неустойка', int: 'Проценты' }[it.kind] + ' · ' + new Date(it.ts).toLocaleString('ru-RU') + ' · ' + it.summary)),
+        h('div', { class: 'row' },
+          h('button', { class: 'btn sm primary', onclick: () => { App.S[it.kind] = App.clone(it.state); App.save(); App.buildView(it.kind); App.show(it.kind); } }, 'Открыть'),
+          h('button', { class: 'btn sm danger', onclick: () => { App.setHist(App.hist().filter(x => x.id !== it.id)); draw(); } }, 'Удалить')))));
+    };
+    put(el, list);
+    draw();
+    App.views.hist.refresh = draw;
+  }
+
+  /* =============== 5. ДАННЫЕ =============== */
+  function buildData(el) {
+    el.innerHTML = '';
+    const S = App.S, set = S.settings;
+    const mk = (title, ...kids) => h('div', { class: 'card' }, h('h2', null, title), ...kids);
+
+    // --- ставки
+    const rateBox = h('div'), showAll = { v: false };
+    const drawRates = () => {
+      rateBox.innerHTML = '';
+      const all = App.rates().slice().reverse(), rows = showAll.v ? all : all.slice(0, 8);
+      put(rateBox, h('div', { class: 'tw' }, h('table', { class: 'grid' }, h('thead', null, h('tr', null, h('th', null, 'С даты'), h('th', { class: 'r' }, 'Ставка, %'), h('th', null, 'Источник'), h('th', null, ''))),
+        h('tbody', null, rows.map(r => h('tr', null, h('td', null, D(r.d)), h('td', { class: 'r' }, E.fmtRate(r.r)), h('td', null, r.src === 'builtin' ? 'встроено' : 'добавлено вами'),
+          h('td', null, r.src !== 'builtin' ? h('button', { class: 'btn sm danger', onclick: () => { delete set.userRates[r.iso]; App.resetRates(); App.save(); drawRates(); } }, 'Убрать') : '')))))),
+        h('button', { class: 'btn sm', onclick: () => { showAll.v = !showAll.v; drawRates(); } }, showAll.v ? 'Свернуть' : 'Показать все (' + all.length + ')'));
+    };
+    const newRate = { date: '', rate: null }, paste = { text: '' };
+    const pasteInfo = h('div', { class: 'hint' });
+    const ta = h('textarea', { placeholder: 'Вставьте строки вида:\n27.07.2026  14,00\n22.06.2026  14,25' });
+    ta.addEventListener('input', () => { paste.text = ta.value; const p = E.parseRatesText(ta.value); pasteInfo.textContent = p.length ? 'Распознано строк: ' + p.length : ''; });
+    put(el, 
+      h('div', { class: 'card' }, h('h2', null, 'Актуальность данных'),
+        h('div', null, 'Ключевая ставка: ' + E.fmtRate(E.keyRateOn(App.rates(), E.todayDn())) + '% (проверено ' + D(E.fromISO(DATA.RATES_ASOF)) + ', заседание ЦБ 23.10.2026). Следующее заседание — ' + D(E.fromISO(DATA.NEXT_MEETING)) + '.'),
+        h('div', { class: 'hint' }, 'Производственный календарь встроен за ' + DATA.CAL_FROM + '–' + DATA.CAL_TO + ' гг. Для остальных лет применяются стандартные выходные и праздники ст. 112 ТК РФ без переносов.')),
+      mk('Ключевая ставка Банка России', rateBox,
+        h('details', { class: 'more' }, h('summary', null, 'Добавить новую ставку'),
+          h('div', { class: 'grid3' }, field('Действует с', App.dateInput(newRate, 'date')), field('Ставка, % годовых', App.numInput(newRate, 'rate', null, '14')),
+            h('div', { style: 'align-self:end' }, h('button', { class: 'btn primary', onclick: () => {
+              const iso = newRate.date, r = newRate.rate;
+              if (E.fromISO(iso) == null || r == null) { App.toast('Укажите дату и ставку'); return; }
+              set.userRates[iso] = r; App.resetRates(); App.save(); drawRates(); App.toast('Ставка добавлена');
+            } }, 'Добавить')))),
+        h('details', { class: 'more' }, h('summary', null, 'Вставить текстом (таблица с сайта ЦБ)'),
+          ta, pasteInfo, h('div', { class: 'hint' }, 'Скопируйте таблицу «Ключевая ставка» с cbr.ru и вставьте сюда. Распознавание скриншотов без интернета недоступно — для этого пришлите изображение в чат Claude, и файл приложения будет обновлён.'),
+          h('button', { class: 'btn primary', onclick: () => {
+            const p = E.parseRatesText(paste.text).sort((a, b) => (a.iso < b.iso ? -1 : 1));
+            let added = 0;
+            p.forEach(x => { const cur = E.keyRateOn(App.rates(), E.fromISO(x.iso)); const ex = App.rates().find(r => r.iso === x.iso); if (!ex || ex.r !== x.r) { if (cur !== x.r || !ex) { set.userRates[x.iso] = x.r; App.resetRates(); added++; } } });
+            App.save(); drawRates(); App.toast(added ? 'Добавлено ставок: ' + added : 'Новых значений нет');
+          } }, 'Применить'))));
+    drawRates();
+
+    // --- календарь
+    const yrs = { y: Math.min(Math.max(new Date().getFullYear(), DATA.CAL_FROM), DATA.CAL_TO + 1) };
+    const calBox = h('div'), bulk = { text: '', kind: 'off' };
+    const drawCal = () => {
+      calBox.innerHTML = '';
+      const cal = App.calendar({ week: 5, covid: S.days.covid });
+      const noData = !DATA.CAL[yrs.y];
+      const yearSel = h('select', null, [].concat(Array.from({ length: 16 }, (_, i) => 2016 + i)).map(y => h('option', { value: y }, y + (DATA.CAL[y] ? '' : ' (нет данных)'))));
+      yearSel.value = yrs.y; yearSel.addEventListener('change', () => { yrs.y = +yearSel.value; drawCal(); });
+      const grid = h('div', { class: 'cal' });
+      for (let m = 0; m < 12; m++) {
+        const first = E.dn(yrs.y, m + 1, 1), dim = new Date(Date.UTC(yrs.y, m + 1, 0)).getUTCDate();
+        const g = h('div', { class: 'g' }, ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'].map(x => h('span', { class: 'h' }, x)));
+        const lead = (E.dow(first) + 6) % 7; for (let i = 0; i < lead; i++) put(g, h('span'));
+        for (let d = 1; d <= dim; d++) {
+          const n = first + d - 1, off = cal.isOff(n), wk = E.dow(n), isW = wk === 0 || wk === 6;
+          const sp = h('span', { class: off ? 'off' : (isW ? 'wk' : ''), title: cal.kind(n) || 'Рабочий день', style: 'cursor:pointer', onclick: () => {
+            const iso = E.toISO(n); const inOff = set.userOff.findIndex(x => x.date === iso), inWork = set.userWork.findIndex(x => x.date === iso);
+            if (inOff >= 0) set.userOff.splice(inOff, 1); else if (inWork >= 0) set.userWork.splice(inWork, 1);
+            else (off ? set.userWork : set.userOff).push({ date: iso });
+            App.save(); drawCal();
+          } }, String(d));
+          put(g, sp);
+        }
+        put(grid, h('div', { class: 'mon' }, h('b', null, ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'][m]), g));
+      }
+      const bulkTa = h('textarea', { placeholder: 'Даты в формате ДД.ММ.ГГГГ — по одной в строке или через запятую' });
+      bulkTa.addEventListener('input', () => { bulk.text = bulkTa.value; });
+      const own = set.userOff.map(x => ['off', x]).concat(set.userWork.map(x => ['work', x])).sort((a, b) => (a[1].date < b[1].date ? -1 : 1));
+      put(calBox, h('div', { class: 'row' }, field('Год', yearSel)),
+        noData ? h('div', { class: 'hint-box' }, 'Для ' + yrs.y + ' г. в приложении нет утверждённого календаря: пока применяются стандартные выходные и праздники ст. 112 ТК РФ. Когда Правительство утвердит переносы — отметьте дни ниже.') : null,
+        h('div', { class: 'legend' }, h('span', null, h('i', { style: 'background:var(--danger-soft)' }), 'нерабочий день'), h('span', null, h('i', { style: 'box-shadow:inset 0 0 0 1px var(--accent)' }), 'рабочая суббота / воскресенье'), h('span', null, 'Нажмите на день, чтобы изменить его статус.')),
+        grid,
+        own.length ? h('div', { style: 'margin-top:10px' }, h('div', { class: 'lbl' }, 'Ваши изменения календаря'), own.map(o => h('div', { class: 'item' }, h('span', null, D(E.fromISO(o[1].date)) + ' — ' + (o[0] === 'off' ? 'нерабочий день' : 'рабочий день')), h('button', { class: 'btn sm danger', onclick: () => { const arr = o[0] === 'off' ? set.userOff : set.userWork; arr.splice(arr.indexOf(o[1]), 1); App.save(); drawCal(); } }, 'Убрать')))) : null,
+        h('details', { class: 'more' }, h('summary', null, 'Добавить списком (например, переносы из постановления)'),
+          bulkTa, field('Что сделать с датами', sel(bulk, 'kind', [['off', 'Сделать нерабочими'], ['work', 'Сделать рабочими']])),
+          h('button', { class: 'btn primary', onclick: () => {
+            const found = (bulk.text.match(/\d{1,2}\.\d{1,2}\.\d{4}/g) || []).map(E.parseRu).filter(x => x != null);
+            found.forEach(n => { const iso = E.toISO(n); set.userOff = set.userOff.filter(x => x.date !== iso); set.userWork = set.userWork.filter(x => x.date !== iso); (bulk.kind === 'off' ? set.userOff : set.userWork).push({ date: iso }); });
+            App.save(); drawCal(); App.toast('Дат добавлено: ' + found.length);
+          } }, 'Добавить')));
+    };
+    put(el, mk('Производственный календарь', calBox));
+    drawCal();
+
+    // --- мораторий, копия, оформление
+    put(el, 
+      mk('Мораторные периоды (встроены)', DATA.MORATORIA.map(m => h('div', { class: 'item' }, h('div', null, h('div', { class: 't' }, m.label), h('div', { class: 's' }, D(E.fromISO(m.from)) + ' – ' + D(E.fromISO(m.to)) + '. ' + m.note))))),
+      mk('Оформление',
+        h('div', { class: 'grid2' }, field('Тема', sel(S, 'theme', [['auto', 'Как в системе'], ['light', 'Светлая'], ['dark', 'Тёмная']], () => { App.applyTheme(); App.save(); })))),
+      mk('Резервная копия', h('div', { class: 'hint' }, 'Ставки, правки календаря и история сохраняются на этом устройстве. Скачайте копию, чтобы перенести их на другое.'),
+        h('div', { class: 'row', style: 'margin-top:8px' },
+          h('button', { class: 'btn', onclick: () => App.download(new Blob([JSON.stringify({ v: 1, settings: App.S.settings, hist: App.hist() })], { type: 'application/json' }), 'raschet-backup-' + E.toISO(E.todayDn()) + '.json') }, 'Скачать копию'),
+          h('label', { class: 'btn' }, 'Загрузить копию', h('input', { type: 'file', accept: 'application/json,.json', style: 'display:none', onchange: ev => {
+            const f = ev.target.files[0]; if (!f) return;
+            f.text().then(t => { try { const o = JSON.parse(t); if (o.settings) { App.S.settings = Object.assign({ userRates: {}, userOff: [], userWork: [] }, o.settings); } if (o.hist) App.setHist(o.hist); App.resetRates(); App.save(); App.buildAll(); App.toast('Копия загружена'); } catch (e) { App.toast('Файл не подошёл'); } });
+          } })),
+          h('button', { class: 'btn danger', onclick: () => { if (confirm('Удалить все сохранённые данные приложения на этом устройстве?')) { try { localStorage.clear(); } catch (e) { } location.reload(); } } }, 'Стереть все данные'))));
+  }
+
+  Object.assign(App, {
+    BUILDERS: { days: buildDays, pen: buildPen, int: buildInt, hist: buildHist, data: buildData }
+  });
+})(window);
+
+/* Запуск: вкладки, тема, офлайн-режим */
+(function (root) {
+  'use strict';
+  const App = root.App, h = App.h;
+  const ICON = {
+    days: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
+    pen: '<svg viewBox="0 0 24 24"><path d="M12 3v18M5 7l-2 6a3 3 0 0 0 4 0L5 7zm14 0-2 6a3 3 0 0 0 4 0l-2-6zM5 7h14M8 21h8"/></svg>',
+    int: '<svg viewBox="0 0 24 24"><path d="M5 19 19 5"/><circle cx="7" cy="7" r="2.4"/><circle cx="17" cy="17" r="2.4"/></svg>',
+    hist: '<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4M12 8v4l3 2"/></svg>',
+    data: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg>'
+  };
+  const TABS = [['days', 'Сроки'], ['pen', 'Неустойка'], ['int', 'Ст. 395'], ['hist', 'История'], ['data', 'Данные']];
+
+  App.applyTheme = function () {
+    const t = App.S.theme;
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme');
+  };
+  App.buildView = function (k) {
+    const el = document.getElementById('v-' + k);
+    App.views[k] = { el, refresh: null };
+    App.BUILDERS[k](el);
+  };
+  App.buildAll = function () { TABS.forEach(t => App.buildView(t[0])); };
+  App.show = function (k) {
+    App.S.tab = k; App.save();
+    TABS.forEach(t => {
+      document.getElementById('v-' + t[0]).classList.toggle('on', t[0] === k);
+      const b = document.querySelector('nav.tabs button[data-t="' + t[0] + '"]'); if (b) b.classList.toggle('on', t[0] === k);
+    });
+    window.scrollTo(0, 0);
+  };
+
+  function init() {
+    App.load(); App.applyTheme();
+    const nav = document.querySelector('nav.tabs .inner');
+    TABS.forEach(t => nav.append(h('button', { 'data-t': t[0], html: ICON[t[0]] + '<span>' + t[1] + '</span>', onclick: () => App.show(t[0]) })));
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      const dark = document.documentElement.getAttribute('data-theme') === 'dark' || (App.S.theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+      App.S.theme = dark ? 'light' : 'dark'; App.applyTheme(); App.save();
+    });
+    window.addEventListener('pagehide', App.flush);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') App.flush(); });
+    App.buildAll();
+    App.show(TABS.some(t => t[0] === App.S.tab) ? App.S.tab : 'days');
+    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})(window);
+</script>
+</body>
+</html>
